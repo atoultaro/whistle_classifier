@@ -1,9 +1,16 @@
 to to list:
 
-1. normalize the features
+1. normalize the features => done Jan 31, 20212am
 
 2. check the results why classification fails by finding the sound selection tables and sound files and then seeing them in Raven.
 
 3. visualize the features so that it can train me to recognize species
 
 4. use MAP as the metric instead of average F1
+
+5. Augmentation. What's the google paper?
+
+6. attention visualization
+
+7. BUG - watkin sound selection tables have multiple column names => solved! Feb 1, 2021
+

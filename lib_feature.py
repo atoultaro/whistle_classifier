@@ -1178,8 +1178,7 @@ def extract_fea_watkin(df_sound_watkin, model_name, fea_out, seltab_out,
                 whistle_score_pos = whistle_score_pos[0]
                 begin_path_pos = begin_path_pos[0]
                 file_offset_pos = file_offset_pos[0]
-            seltab_out_file = os.path.join(seltab_out,
-                                           row['species'] + '_pos.txt')
+            seltab_out_file = os.path.join(seltab_out, row['species']+'_'+row['deployment']+'_pos.txt')
             make_sound_sel_table(seltab_out_file,
                                              whistle_time_start_pos,
                                              whistle_time_end_pos, begin_path_pos,
@@ -1200,7 +1199,7 @@ def extract_fea_watkin(df_sound_watkin, model_name, fea_out, seltab_out,
                 begin_path_neg = begin_path_neg[0]
                 file_offset_neg = file_offset_neg[0]
             seltab_out_file = os.path.join(seltab_out,
-                                           row['species'] + '_neg.txt')
+                                           row['species']+'_'+row['deployment']+'_neg.txt')
             make_sound_sel_table(seltab_out_file,
                                              whistle_time_start_neg,
                                              whistle_time_end_neg, begin_path_neg,

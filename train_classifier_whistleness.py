@@ -21,7 +21,7 @@ bin_dir_fold = dict()
 for pp in range(4):  # 'bin_dir_fold['pie1']'
     bin_dir_fold['pie'+str(pp+1)] = os.path.join(bin_dir, 'pie'+str(pp+1))
 
-sound_dir = '/home/ys587/__Data/__whistle/__sound_species/'
+sound_dir = '/home/ys587/__Data/__whistle/__whistle_dclde2011/'
 species_name = ['bottlenose', 'common', 'spinner', 'melon-headed']
 species_id = {'bottlenose': 0, 'common': 1, 'spinner': 2, 'melon-headed': 3}
 

@@ -25,10 +25,10 @@ for dd in data_source:
         work_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__oswald'
         whistle_data_oswald = '/home/ys587/__Data/__whistle/__whistle_oswald'  # sound
         fea_out = os.path.join(work_path, '__fea_files')
-        if not fea_out:
+        if not os.path.exists(fea_out):
             os.makedirs(fea_out)
         seltab_out = os.path.join(work_path, '__sound_seltab')
-        if not seltab_out:
+        if not os.path.exists(seltab_out):
             os.makedirs(seltab_out)
         deployment = ['HICEAS2002', 'PICEAS2005', 'STAR2000', 'STAR2003', 'STAR2006']
         species_to_code = {'bottlenose': 'BD', 'longbeaked_common': 'CD', 'shortbeaked_common': 'CD', 'common': 'CD',
@@ -50,7 +50,7 @@ for dd in data_source:
         species_fea = lib_feature.read_features_from_files(fea_out, list(species_dict.keys()))
         if len(species_fea) == 0:
             raise ('No feature individual files are present. Need to compute features.')
-        fea_oswald_4d, label_oswald = lib_feature.combine_features_from_dict(species_fea, fea_out, 'fea_label_oswald.npz', species_dict)
+        fea_oswald_4d, label_oswald = lib_feature.combine_features_from_dict(species_fea, work_path, 'fea_label_oswald.npz', species_dict)
         # fea_oswald_out = os.path.join(work_path, 'fea_label_oswald.npz')
         # np.savez(fea_oswald_out, fea_part_4d=fea_oswald_4d, label_part=label_oswald)
 
@@ -79,13 +79,13 @@ for dd in data_source:
         species_fea = lib_feature.read_features_from_files(fea_out, list(species_dict.keys()))
         if len(species_fea) == 0:
             raise ('No feature individual files are present. Need to compute features.')
-        fea_gillispie_4d, label_gillispie = lib_feature.combine_features_from_dict(species_fea, fea_out, 'fea_label_gillispie.npz', species_dict)
+        fea_gillispie_4d, label_gillispie = lib_feature.combine_features_from_dict(species_fea, work_path, 'fea_label_gillispie.npz', species_dict)
         # fea_gillispie_out = os.path.join(work_path, 'fea_label_gillispie.npz')
         # np.savez(fea_gillispie_out, fea_part_4d=fea_gillispie_4d, label_part=label_gillispie)
 
     elif dd == 'dclde2011':
         work_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__dclde2011'
-        whistle_data_dclde2011 = '/home/ys587/__Data/__whistle/__sound_species'  # sound
+        whistle_data_dclde2011 = '/home/ys587/__Data/__whistle/__whistle_dclde2011'  # sound
         fea_out = os.path.join(work_path, '__fea_files')
         if not os.path.exists(fea_out):
             os.makedirs(fea_out)
@@ -106,7 +106,7 @@ for dd in data_source:
         species_fea = lib_feature.read_features_from_files(fea_out, list(species_dict.keys()))
         if len(species_fea) == 0:
             raise ('No feature individual files are present. Need to compute features.')
-        fea_dclde2011_4d, label_dclde2011 = lib_feature.combine_features_from_dict(species_fea, fea_out, 'fea_label_dclde2011.npz', species_dict)
+        fea_dclde2011_4d, label_dclde2011 = lib_feature.combine_features_from_dict(species_fea, work_path, 'fea_label_dclde2011.npz', species_dict)
 
     elif dd == 'watkin':
         # setting
@@ -132,5 +132,5 @@ for dd in data_source:
         species_fea = lib_feature.read_features_from_files(fea_out, list(species_dict.keys()))
         if len(species_fea) == 0:
             raise ('No feature individual files are present. Need to compute features.')
-        fea_watkin_4d, label_watkin = lib_feature.combine_features_from_dict(species_fea, fea_out, 'fea_label_watkin.npz', species_dict)
+        fea_watkin_4d, label_watkin = lib_feature.combine_features_from_dict(species_fea, work_path, 'fea_label_watkin.npz', species_dict)
 
