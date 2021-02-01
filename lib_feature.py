@@ -560,12 +560,18 @@ def combine_features_from_dict(species_fea_part, fea_part_out, fea_out_filename,
 #     return spectro_fea
 
 
-def feature_whistleness(spectro, use_pcen=True, remove_pulse=True, freq_low=0):
+def feature_whistleness(spectro, use_pcen=True, remove_pulse=True, unit_vec=True, freq_low=0):
     if use_pcen:
-        spectro = librosa.pcen(spectro * (2 ** 31))
+        spectro = librosa.pcen(spectro * (2 ** 31))  # apply pcen
     if remove_pulse:
-        spectro = nopulse_median(spectro[freq_low:, :])
-    spectro_fea = (avg_sub(spectro)).T
+        spectro = nopulse_median(spectro[freq_low:, :])  # remove the pulsive noise / click
+    spectro_fea = (avg_sub(spectro)).T  # remove the tonal noise
+
+    if unit_vec:
+        # vec_len = np.sqrt(np.sum(spectro_fea ** 2.))  # length of vector "spectro"
+        spectro_fea = spectro_fea - spectro_fea.mean()
+        vec_len = np.sum(np.abs(spectro_fea))
+        spectro_fea = spectro_fea/vec_len if vec_len else np.zeros(spectro_fea.shape)
 
     return spectro_fea
 
@@ -667,7 +673,6 @@ def extract_fea_oswald(df_sound_oswald, model_name, fea_out, seltab_out,
                                                           hop_length=conf_hop_length,
                                                           power=1)
             whistle_freq_list = []
-            # whistle_fea_list = []
             win_num = floor((whistle_freq.shape[1] - conf_time_multi) / conf_time_multi_hop) + 1  # 0.5s hop
 
             if win_num > 0:
@@ -676,7 +681,6 @@ def extract_fea_oswald(df_sound_oswald, model_name, fea_out, seltab_out,
                                         nn * conf_time_multi_hop:
                                         nn * conf_time_multi_hop + conf_time_multi]
                     whistle_freq_curr = feature_whistleness(whistle_freq_curr, use_pcen, remove_pulse)
-                    # whistle_freq_curr = fea_pcen_nopulse_from_mel(whistle_freq_curr)  # features for detection
                     whistle_freq_list.append(whistle_freq_curr)
 
                 if len(whistle_freq_list) >= 2:
@@ -691,7 +695,7 @@ def extract_fea_oswald(df_sound_oswald, model_name, fea_out, seltab_out,
             # extract features here for both positive & negative classes
             whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
             whistle_win_ind_neg = np.where(predictions[:, 1] < conf_whistle_thre_neg)[0]
-            # if fea_type == 'pcen_nopulse':
+
             whistle_image_4d_pos_list.append(
                 whistle_image_4d[whistle_win_ind_pos, :, :, :])
             whistle_image_4d_neg_list.append(

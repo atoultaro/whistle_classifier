@@ -31,40 +31,31 @@ deployment = ['1705', '1706']
 species_list = ['NO', 'BD', 'MH', 'CD', 'STR', 'SPT', 'SPIN', 'PLT', 'RD', 'RT',
                 'WSD', 'FKW', 'BEL', 'KW', 'WBD', 'DUSK', 'FRA', 'PKW', 'LPLT',
                 'NAR', 'CLY', 'SPE', 'ASP']
-num_species = 10  # noise not included
-# # species_to_id = {'BD': 0, 'LCD': 1, 'SCD': 2, 'STR': 3, 'SPT': 4,
-# #                  'SPIN': 5, 'PLT': 6, 'RT': 7, 'FKW': 8, 'NO': 9}
-# species_to_id = {'BD', 'MH', 'STR', 'SPT', 'PLT', 'RD', 'RT', 'FKW', 'FRA', 'PKW'}
-
+num_species = 23  # noise not included
 species_to_id = {'NO': 0, 'BD': 1, 'MH': 2, 'CD': 3, 'STR': 4, 'SPT': 5, 'SPIN': 6, 'PLT': 7, 'RD': 8, 'RT': 9,
                 'WSD': 10, 'FKW': 11, 'BEL': 12, 'KW': 13, 'WBD': 14, 'DUSK': 15, 'FRA': 16, 'PKW': 17, 'LPLT': 18,
                 'NAR': 19, 'CLY': 20, 'SPE': 21, 'ASP': 22}
 
-dclde2020_outpath = '/home/ys587/__Data/__whistle/__whistle_dclde2020'
+# seltab output
+seltab_out_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__seltab_out'
+if not os.path.exists(seltab_out_path):
+    os.makedirs(seltab_out_path)
 
 # trained model
-# model_detection_path = os.path.join(dclde2020_outpath, '__trained_model/detection/2020-11-21_172710_resnet34_expt_alldata_run1_f1_lr_0.01/epoch_21_valloss_0.4099_valacc_0.9200.hdf5')  # 64, 50, 1
-# model_detection_path = os.path.join(dclde2020_outpath, '')
 model_detection_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_contour_no_pulses/2021-01-24_160849_resnet18_expt_alldata_run0_f1_lr_0.001/epoch_121_valloss_0.3218_valacc_0.9160.hdf5'  # use_pcen=True, remove_pulse=True
 
-# model_classification_path = os.path.join(dclde2020_outpath, '__trained_model/classification/20201028_130857_file_mel_cnn14_attention_filter16_f1_p80/23-0.1873.hdf5')  # (151, 128, 1)
-# model_classification_path = os.path.join(dclde2020_outpath, '/home/ys587/__Data/__whistle/__domain_adaptation/__fit_result_species/20201103_213954_domain_source_f80/89-0.0974.hdf5')
-# model_classification_path = os.path.join(dclde2020_outpath, '/home/ys587/__Data/__whistle/__domain_adaptation/__fit_result_species/20201028_234434_file_cleaned_mel_cnn14_attention_filter64_f1_p79_lr_schedule/55-0.1155.hdf5')
 # Attention over time on last two groups of conv layers
-# model_classification_path = 'os.path.join(dclde2020_outpath, '/home/ys587/__Data/__whistle/__domain_adaptation/__fit_result_species/20201207_203345_file/19-0.2294.hdf5')'
-model_classification_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_species/__good/20210128_111347/epoch_116_valloss_0.4936_valacc_0.8401.hdf5'
+# model_classification_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_species/__good/20210128_111347/epoch_116_valloss_0.4936_valacc_0.8401.hdf5'
+model_classification_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_species/__fea_mel_pcen_p2s_contour_no_pulses/20210129_104213/epoch_108_valloss_0.4632_valacc_0.8489.hdf5'
 model_detector = load_model(model_detection_path)
 model_classifier = load_model(model_classification_path)
-
-# seltab output
-seltab_out_path = os.path.join(dclde2020_outpath, '__seltab_out')
 
 conf = dict()
 conf['sample_rate'] = 48000
 conf['time_reso'] = 0.02
 conf['hop_length'] = int(conf['time_reso']*conf['sample_rate'])
 conf['win_size'] = 1.  # 1-7erws window for whistleness
-conf['hop_size'] = 0.25  # 0.5 sec stepsize
+conf['hop_size'] = 0.125  # 0.5 sec stepsize
 conf['time_indices_win'] = floor(conf['win_size'] / conf['time_reso'])  # 50
 conf['time_indices_hop'] = floor(conf['hop_size'] / conf['time_reso'])  # 25
 conf['freq_ind_low'] = 64
@@ -72,7 +63,7 @@ conf['secshift'] = 0.0  # 0.524
 conf['alpha'] = 1.0-np.exp(np.log(0.15)*.02/10.)
 
 # conf['whistle_thre_min'] = 0.01  # for two-class classifier
-conf['whistle_thre_pos'] = 0.8
+conf['whistle_thre_pos'] = 0.9
 conf['contour_timethre'] = 20  # 0.4 s for dclde 2011
 conf['trained_class_num'] = 'two'
 
@@ -127,8 +118,7 @@ for dd in deployment:
         for cc in [2]:
             print('channel: '+str(cc))
             samples_chan = np.asfortranarray(samples[cc, :])
-            samples_chan = samples_chan - samples_chan.mean()
-            # samples_chan = samples_chan / samples_chan.std()
+            # samples_chan = samples_chan - samples_chan.mean()
 
             # whistleness feature
             whistle_freq = librosa.feature.melspectrogram(samples_chan,
@@ -137,58 +127,31 @@ for dd in deployment:
                                                           power=1)
 
             whistle_freq_list = []
-            species_freq_list = []
             win_num = floor((whistle_freq.shape[1] - conf['time_indices_win']) / conf['time_indices_hop'])  # 0.5s hop
 
-            # for nn in range(2, win_num-2):
-            for nn in range(win_num):
-                # whistleness features
-                whistle_freq_curr = \
-                    whistle_freq[:, nn*conf['time_indices_hop']:
-                                    nn*conf['time_indices_hop']+conf['time_indices_win']]
-                whistle_freq_curr = feature_whistleness(whistle_freq_curr, use_pcen=True, remove_pulse=True)
-                # whistle_freq_curr = lib_feature.fea_pcen_nopulse_from_mel(whistle_freq_curr, freq_min=0)
-                whistle_freq_list.append(whistle_freq_curr)
+            if win_num > 0:
+                for nn in range(win_num):
+                    # whistleness features
+                    whistle_freq_curr = \
+                        whistle_freq[:, nn*conf['time_indices_hop']:
+                                        nn*conf['time_indices_hop']+conf['time_indices_win']]
+                    whistle_freq_curr = feature_whistleness(whistle_freq_curr, use_pcen=True, remove_pulse=True)
+                    whistle_freq_list.append(whistle_freq_curr)
 
-                # # species feature
-                # samples_chan_curr = samples_chan[int((nn-2)*conf['hop_size']*conf['sample_rate']):int(((nn+2)*conf['hop_size']+conf['win_size'])*conf['sample_rate'])]
-                # species_freq_curr = librosa.feature.melspectrogram(samples_chan_curr,
-                #     sr=conf['sample_rate'], n_fft=1024, win_length=960,
-                #     hop_length=960, power=1)
-                # # species_freq_curr = \
-                # #     species_freq[:, (nn-2)*conf['time_indices_hop']:
-                # #                     (nn+2)*conf['time_indices_hop']
-                # #                     +conf['time_indices_win']]
-                # species_freq_curr = librosa.pcen(species_freq_curr * (2 ** 31))
-                # species_freq_curr = lib_feature.nopulse_median(species_freq_curr)
-                # species_freq_curr = lib_feature.avg_sub(species_freq_curr, conf['alpha'])
-                #
-                # # species_freq_curr = np.append(species_freq_curr, species_freq_curr.mean(axis=1).reshape(-1, 1), axis=1)
-                # species_freq_list.append(species_freq_curr)
+                # whistleness features' dimension changes
+                if len(whistle_freq_list) >= 2:
+                    whistle_image = np.stack(whistle_freq_list)
+                elif len(whistle_freq_list) == 1:
+                    whistle_image = np.expand_dims(whistle_freq_list[0], axis=0)
+                else:  # len == 0
+                    continue
+                whistle_image_4d = np.expand_dims(whistle_image, axis=3)
 
-            # whistleness features' dimension changes
-            if len(whistle_freq_list) >= 2:
-                whistle_image = np.stack(whistle_freq_list)
-            elif len(whistle_freq_list) == 1:
-                whistle_image = np.expand_dims(whistle_freq_list[0], axis=0)
-            else:  # len == 0
-                continue
-            whistle_image_4d = np.expand_dims(whistle_image, axis=3)
-
-            # # species features' dimension changes
-            # if len(species_freq_list) >= 2:
-            #     whistle_image_species = np.stack(species_freq_list)
-            #     whistle_image_species = np.transpose(whistle_image_species, (0, 2, 1))
-            # else:
-            #     species_freq_list[0] = np.transpose(species_freq_list[0], (0, 2, 1))
-            #     whistle_image_species = np.expand_dims(species_freq_list[0], axis=0)
-            # whistle_image_species_4d = np.expand_dims(whistle_image_species, axis=3)
-
-            # make predictions
-            predictions_detection = model_detector.predict(whistle_image_4d)
-            predictions_score = model_classifier.predict(whistle_image_4d)  # <<==
-            pred_class = np.argmax(predictions_score, axis=1)
-            pred_score_max = np.max(predictions_score, axis=1)
+                # make predictions
+                predictions_detection = model_detector.predict(whistle_image_4d)
+                predictions_score = model_classifier.predict(whistle_image_4d)  # <<==
+                pred_class = np.argmax(predictions_score, axis=1)
+                pred_score_max = np.max(predictions_score, axis=1)
 
             whistle_win_ind = np.where(predictions_detection[:, 1] > conf['whistle_thre_pos'])[0]
             if whistle_win_ind.shape[0] >= 1:

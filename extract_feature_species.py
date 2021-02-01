@@ -9,11 +9,11 @@ import os
 import numpy as np
 from whistle_classifier import lib_feature
 
-# data_source = ['oswald', 'gillispie', 'dclde2011', 'watkin_best_all']  # 'watkin_master
+data_source = ['oswald', 'gillispie', 'dclde2011', 'watkin']
 # data_source = ['dclde2011']
 # data_source = ['gillispie']
-data_source = ['watkin']
-model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_contour_no_pulses/2021-01-24_160849_resnet18_expt_alldata_run0_f1_lr_0.001/epoch_121_valloss_0.3218_valacc_0.9160.hdf5'  # use_pcen=True, remove_pulse=True
+# data_source = ['watkin']
+model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_p4s_unit_contour_no_pulses/2021-01-31_204503_resnet18_expt_alldata_run1_f1_lr_0.00333/epoch_49_valloss_0.2673_valacc_0.9425.hdf5'  # use_pcen=True, remove_pulse=True
 species_dict = {'NO': 0, 'BD': 1, 'MH': 2, 'CD': 3, 'STR': 4, 'SPT': 5, 'SPIN': 6, 'PLT': 7, 'RD': 8, 'RT': 9,
                 'WSD': 10, 'FKW': 11, 'BEL': 12, 'KW': 13, 'WBD': 14, 'DUSK': 15, 'FRA': 16, 'PKW': 17, 'LPLT': 18,
                 'NAR': 19, 'CLY': 20, 'SPE': 21, 'ASP': 22}
