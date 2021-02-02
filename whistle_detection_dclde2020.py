@@ -21,7 +21,7 @@ from tensorflow.keras.models import load_model
 
 # from species_classifier.all_whistle_training import make_sound_sel_table
 # from species_classifier.species_lib import fea_pcem_nopulse_from_mel
-from whistle_classifier.lib_feature import feature_whistleness, make_sound_sel_table_dclde2020, make_sound_sel_table_empty_dclde2020
+from lib_feature import feature_whistleness, make_sound_sel_table_dclde2020, make_sound_sel_table_empty_dclde2020
 
 # detection on multi-channel sound
 # sound_path = '/mnt/DCLDE/noaa-pifsc-bioacoustic'

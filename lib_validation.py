@@ -28,7 +28,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStoppi
 from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import Callback
 
-from whistle_classifier.lib_feature import data_generator
+from lib_feature import data_generator
 # from whistle_classifier.capecod_classifier import metrics_two_fold, find_best_model
 
 from contextlib import redirect_stdout

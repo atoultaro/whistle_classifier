@@ -10,9 +10,8 @@ import os
 import numpy as np
 from math import floor
 
-from whistle_classifier.lib_preprocess import bin_extract, contour_target_retrieve
-from whistle_classifier.lib_validation import \
-    fea_ext_dcldc2011, all_data_train_validate, one_fold_validate
+from lib_preprocess import bin_extract, contour_target_retrieve
+from lib_validation import fea_ext_dcldc2011, all_data_train_validate, one_fold_validate
 
 
 # bin files for training & testing
