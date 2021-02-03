@@ -9,11 +9,7 @@ import os
 import glob
 import librosa
 import soundfile as sf
-import sox
-import pandas as pd
-import sys
 
-# proj = '96kHz'
 # proj_path = os.path.dirname(__file__)
 proj_path_orig = '/home/ys587/__Data/__whistle/__whistle_dclde2011'
 sample_rate_target = 48000
@@ -22,9 +18,6 @@ sample_rate_target = 48000
 proj_path_new = proj_path_orig+'_48kHz'
 if not os.path.exists(proj_path_new):
     os.makedirs(proj_path_new)
-
-# collect sound info
-species_list = os.listdir(proj_path_orig)
 
 # conventional approach: read by the target sampling rate in librosa and save the first channel
 species_folder = os.listdir(proj_path_orig)

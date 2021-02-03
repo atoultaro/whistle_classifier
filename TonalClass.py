@@ -14,10 +14,8 @@ Created on Mon Dec 11 10:57:42 2017
 import numpy as np
 import pandas as pd
 import os
-# import struct
-# import sys
-# os.chdir('/home/kpalmer/AnacondaProjects/PeakPicker_new')
-from peak_picker.datainputstream import DataInputStream
+
+from datainputstream import DataInputStream
 # Change directory to location of test files
 
 # build a whistle contour class that uses polyfit, accepts the key dictionary

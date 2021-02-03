@@ -9,9 +9,6 @@ import os
 import glob
 import librosa
 import soundfile as sf
-import sox
-import pandas as pd
-import sys
 
 # proj = '48kHz'
 proj = '96kHz'

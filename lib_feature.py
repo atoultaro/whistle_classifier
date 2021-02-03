@@ -9,6 +9,7 @@ import os
 import sys
 import pandas as pd
 import glob
+import random
 from math import floor, ceil
 import numpy as np
 from scipy.ndimage.filters import median_filter
@@ -20,50 +21,50 @@ from tensorflow.keras.models import load_model
 import librosa
 
 
-def make_sound_sel_table(seltab_output_path, begin_time, end_time, begin_path,
-                         file_offset, score_arr, score_thre, chan=None,
-                         class_id=None):
-    assert(begin_time.shape[0] == score_arr.shape[0])
-    event_num = score_arr.shape[0]
-
-    data_dict = {
-        'Selection': [ii+1 for ii in range(event_num)],
-        'View': ['Spectrogram 1']*event_num,
-
-        'Begin Time (s)': np.around(begin_time, decimals=2),
-        'End Time (s)': np.around(end_time, decimals=2),
-        'Low Freq (Hz)': [3000.0]*event_num,
-        'High Freq (Hz)': [22000.0]*event_num,
-        'Score': np.around(score_arr, decimals=4),
-        'Score Thre': np.repeat(np.around(score_thre, decimals=3), event_num),
-        'Begin Path': begin_path,
-        'File Offset': file_offset
-    }
-    if chan is None:
-        data_dict.update({'Channel': [1] * event_num})
-    else:
-        data_dict.update({'Channel': chan})
-    if class_id is not None:
-        data_dict.update({'Class_id': class_id})
-        df_seltab0 = pd.DataFrame.from_dict(data_dict)
-        col_name = ['Selection', 'View', 'Channel', 'Begin Time (s)',
-                    'End Time (s)', 'Low Freq (Hz)', 'High Freq (Hz)', 'Score',
-                    'Score Thre', 'Begin Path', 'File Offset', 'Class_id']
-    else:
-        df_seltab0 = pd.DataFrame.from_dict(data_dict)
-        col_name = ['Selection', 'View', 'Channel', 'Begin Time (s)',
-                    'End Time (s)', 'Low Freq (Hz)', 'High Freq (Hz)', 'Score',
-                    'Score Thre', 'Begin Path', 'File Offset']
-    # sort columns by the order of Raven's selection table
-    df_seltab = df_seltab0[col_name]
-    # sort rows by first, Begin Path and then, Begin
-    # df_seltab = df_seltab.sort_values(by=['Begin Path', 'File Offset'])
-    df_seltab = df_seltab.sort_values(by=['File Offset'])
-    # df_seltab.update(pd.Series([ii+1 for ii in range(event_num)], name='Selection'))
-
-
-    # write out selection table
-    df_seltab.to_csv(seltab_output_path, sep='\t', mode='a', index=False)
+# def make_sound_sel_table(seltab_output_path, begin_time, end_time, begin_path,
+#                          file_offset, score_arr, score_thre, chan=None,
+#                          class_id=None):
+#     assert(begin_time.shape[0] == score_arr.shape[0])
+#     event_num = score_arr.shape[0]
+#
+#     data_dict = {
+#         'Selection': [ii+1 for ii in range(event_num)],
+#         'View': ['Spectrogram 1']*event_num,
+#
+#         'Begin Time (s)': np.around(begin_time, decimals=2),
+#         'End Time (s)': np.around(end_time, decimals=2),
+#         'Low Freq (Hz)': [3000.0]*event_num,
+#         'High Freq (Hz)': [22000.0]*event_num,
+#         'Score': np.around(score_arr, decimals=4),
+#         'Score Thre': np.repeat(np.around(score_thre, decimals=3), event_num),
+#         'Begin Path': begin_path,
+#         'File Offset': file_offset
+#     }
+#     if chan is None:
+#         data_dict.update({'Channel': [1] * event_num})
+#     else:
+#         data_dict.update({'Channel': chan})
+#     if class_id is not None:
+#         data_dict.update({'Class_id': class_id})
+#         df_seltab0 = pd.DataFrame.from_dict(data_dict)
+#         col_name = ['Selection', 'View', 'Channel', 'Begin Time (s)',
+#                     'End Time (s)', 'Low Freq (Hz)', 'High Freq (Hz)', 'Score',
+#                     'Score Thre', 'Begin Path', 'File Offset', 'Class_id']
+#     else:
+#         df_seltab0 = pd.DataFrame.from_dict(data_dict)
+#         col_name = ['Selection', 'View', 'Channel', 'Begin Time (s)',
+#                     'End Time (s)', 'Low Freq (Hz)', 'High Freq (Hz)', 'Score',
+#                     'Score Thre', 'Begin Path', 'File Offset']
+#     # sort columns by the order of Raven's selection table
+#     df_seltab = df_seltab0[col_name]
+#     # sort rows by first, Begin Path and then, Begin
+#     # df_seltab = df_seltab.sort_values(by=['Begin Path', 'File Offset'])
+#     df_seltab = df_seltab.sort_values(by=['File Offset'])
+#     # df_seltab.update(pd.Series([ii+1 for ii in range(event_num)], name='Selection'))
+#
+#
+#     # write out selection table
+#     df_seltab.to_csv(seltab_output_path, sep='\t', mode='a', index=False)
 
 
 def sound_file_info(df_target):
@@ -472,174 +473,646 @@ def combine_features_from_dict(species_fea_part, fea_part_out, fea_out_filename,
     return fea_part_4d, label_part
 
 
-# def unit_vector(fea_4d):
-#     for ii in range(fea_4d.shape[0]):
-#         fea_sum = np.abs(fea_4d[ii, :, :, :]).sum()
-#         if fea_sum:
-#             fea_4d[ii, :, :, :] = fea_4d[ii, :, :, :]/fea_sum
-#         else:
-#             fea_4d[ii, :, :, :] = np.zeros((fea_4d.shape[1], fea_4d.shape[2], 1))
-#
-#     return fea_4d
+def combine_sound_selection_table(dataset, species_id):
+
+    return None
 
 
-# def powerlaw(spectro_mat, nu1=1., nu2=2., gamma=1.):
-#     dim_f, dim_t = spectro_mat.shape
-#
-#     mu_k = [powelaw_find_mu(spectro_mat[ff, :]) for ff in range(dim_f)]
-#     mat0 = spectro_mat ** gamma - np.array(mu_k).reshape(dim_f, 1) * np.ones(
-#         (1, dim_t))
-#     mat_a_denom = [(np.sum(mat0[:, tt] ** 2.)) ** .5 for tt in range(dim_t)]
-#     mat_a = mat0 / (np.ones((dim_f, 1)) * np.array(mat_a_denom).reshape(1, dim_t))
-#
-#     mat_b_denom = [(np.sum(mat0[ff, :] ** 2.)) ** .5 for ff in range(dim_f)]
-#     mat_b = mat0 / (np.array(mat_b_denom).reshape(dim_f, 1) * np.ones((1, dim_t)))
-#
-#     mat_a = mat_a * (mat_a > 0)  # set negative values into zero
-#     mat_b = mat_b * (mat_b > 0)
-#
-#     whistle_powerlaw = (mat_a ** (2.0 * nu1)) * (mat_b ** (2.0 * nu2))
-#
-#     return whistle_powerlaw
+def extract_clip_oswald(df_sound_oswald, model_name, clip_out, seltab_out,
+                        use_pcen=True,
+                        remove_pulse=True,
+                        conf_samplerate=48000,
+                        conf_time_reso=0.02,
+                        conf_win_size=1.,
+                        conf_hop_size=0.8,
+                        conf_hop_length=int(0.02*48000),  # int(conf['time_reso']*conf['sample_rate'])
+                        conf_whistle_thre_pos=0.9,
+                        conf_whistle_thre_neg=0.1,
+                        ):
+    conf_time_multi = floor(conf_win_size/conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size/conf_time_reso)
+    classifier_model = load_model(model_name)
+
+    random.seed(0)
+    count_pos = 0
+    count_neg = 0
+    for index, row in df_sound_oswald.iterrows():
+        print('Acoustic encounter ' + str(index + 1) + '/' + str(
+            len(df_sound_oswald)) + ': ' + row['folder'])
+
+        wav_list = glob.glob(row['path'] + '/*.wav')
+        wav_list.sort()
+        whistle_time_start_pos = []
+        whistle_time_end_pos = []
+        whistle_score_pos = []
+        begin_path_pos = []
+        file_offset_pos = []
+        whistle_time_start_neg = []
+        whistle_time_end_neg = []
+        whistle_score_neg = []
+        begin_path_neg = []
+        file_offset_neg = []
+
+        for ww in wav_list:
+            print(os.path.basename(ww))
+            # ww = os.path.join(row['path'], ww0)
+            samples, _ = librosa.load(ww, sr=conf_samplerate)
+            if np.ndim(samples) > 1:
+                samples = samples[0]
+
+            whistle_freq = librosa.feature.melspectrogram(samples,
+                                                          sr=conf_samplerate,
+                                                          hop_length=conf_hop_length,
+                                                          power=1)
+            whistle_freq_list = []
+            win_num = floor((whistle_freq.shape[1] - conf_time_multi) / conf_time_multi_hop) + 1  # 0.5s hop
+
+            if win_num > 0:
+                for nn in range(win_num):
+                    whistle_freq_curr = whistle_freq[:,
+                                        nn * conf_time_multi_hop:
+                                        nn * conf_time_multi_hop + conf_time_multi]
+                    whistle_freq_curr = feature_whistleness(whistle_freq_curr, use_pcen, remove_pulse)
+                    whistle_freq_list.append(whistle_freq_curr)
+
+                if len(whistle_freq_list) >= 2:
+                    whistle_image = np.stack(whistle_freq_list)
+                else:
+                    whistle_image = np.expand_dims(whistle_freq_list[0], axis=0)
+                whistle_image_4d = np.expand_dims(whistle_image, axis=3)
+
+                predictions = classifier_model.predict(whistle_image_4d)
+            else:
+                continue
+
+            # extract features here for both positive & negative classes
+            whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
+            whistle_win_ind_neg = np.where(predictions[:, 1] < conf_whistle_thre_neg)[0]
+
+            if whistle_win_ind_pos.shape[0] >= 1:
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_pos * conf_hop_size
+                whistle_time_start_pos.append(whistle_time_start_curr)
+                whistle_time_end_pos.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_pos:
+                    count_pos += 1
+                    clip_filename_pos = os.path.join(clip_out, row['species'] + '_' + row['deployment'] + '_' +
+                                                     row['encounter'] +'_'+str(count_pos) +'.wav')
+                    sf.write(clip_filename_pos, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
+
+                # detected whistle score
+                whistle_score_pos.append(predictions[:, 1][whistle_win_ind_pos])
+                begin_path_pos.append([ww] * whistle_win_ind_pos.shape[0])
+                file_offset_pos.append(whistle_win_ind_pos * conf_hop_size)
+
+            if whistle_win_ind_neg.shape[0] >= 1:
+                # random sampling of negative sounds on whistle_win_ind_neg
+                if len(whistle_win_ind_neg) >= 5:  # randomly select at most five noise sound clips
+                    whistle_win_ind_neg = np.random.choice(whistle_win_ind_neg, 5)
+
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_neg * conf_hop_size
+                whistle_time_start_neg.append(whistle_time_start_curr)
+                whistle_time_end_neg.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_neg:
+                    count_neg += 1
+                    clip_filename_neg = os.path.join(clip_out, 'NO' + '_' + row['deployment'] + '_' +
+                                                     row['encounter'] + '_' + str(count_neg) +'.wav')
+                    sf.write(clip_filename_neg, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
+
+                # detected whistle score
+                whistle_score_neg.append(predictions[:, 1][whistle_win_ind_neg])
+                begin_path_neg.append([ww] * whistle_win_ind_neg.shape[0])
+                file_offset_neg.append(whistle_win_ind_neg * conf_hop_size)
+
+        # make sound selection table
+        if len(whistle_time_start_pos) >= 2:
+            if len(whistle_time_start_pos) >= 2:
+                whistle_time_start_pos = np.concatenate(whistle_time_start_pos)
+                whistle_time_end_pos = np.concatenate(whistle_time_end_pos)
+                whistle_score_pos = np.concatenate(whistle_score_pos)
+                begin_path_pos = np.concatenate(begin_path_pos)
+                file_offset_pos = np.concatenate(file_offset_pos)
+            else:  # == 1
+                whistle_time_start_pos = whistle_time_start_pos[0]
+                whistle_time_end_pos = whistle_time_end_pos[0]
+                whistle_score_pos = whistle_score_pos[0]
+                begin_path_pos = begin_path_pos[0]
+                file_offset_pos = file_offset_pos[0]
+            seltab_out_file_pos = os.path.join(seltab_out,
+                                           row['species'] + '_' + row[
+                                               'deployment'] + '_' + row[
+                                               'encounter'] + '_pos.txt')
+            make_sound_sel_table(seltab_out_file_pos,
+                                             whistle_time_start_pos,
+                                             whistle_time_end_pos, begin_path_pos,
+                                             file_offset_pos, whistle_score_pos,
+                                             conf_whistle_thre_pos)
+
+        if len(whistle_time_start_neg) >= 1:
+            if len(whistle_time_start_neg) >= 2:
+                whistle_time_start_neg = np.concatenate(
+                    whistle_time_start_neg)
+                whistle_time_end_neg = np.concatenate(whistle_time_end_neg)
+                whistle_score_neg = np.concatenate(whistle_score_neg)
+                begin_path_neg = np.concatenate(begin_path_neg)
+                file_offset_neg = np.concatenate(file_offset_neg)
+            else:  # == 1
+                whistle_time_start_neg = whistle_time_start_neg[0]
+                whistle_time_end_neg = whistle_time_end_neg[0]
+                whistle_score_neg = whistle_score_neg[0]
+                begin_path_neg = begin_path_neg[0]
+                file_offset_neg = file_offset_neg[0]
+            seltab_out_file_neg = os.path.join(seltab_out,
+                                               row['species'] + '_' + row[
+                                                   'deployment'] + '_' + row[
+                                                   'encounter'] + '_neg.txt')
+            make_sound_sel_table(seltab_out_file_neg, whistle_time_start_neg,
+                                 whistle_time_end_neg, begin_path_neg,
+                                 file_offset_neg, whistle_score_neg,
+                                 conf_whistle_thre_neg)
 
 
-# def powelaw_find_mu(time_f):
-#     time_f_sorted = np.sort(time_f)
-#     spec_half_len = int(np.floor(time_f_sorted.shape[0] * .5))
-#     ind_j = np.argmin(
-#         time_f_sorted[spec_half_len:spec_half_len * 2] - time_f_sorted[0:spec_half_len])
-#     mu = np.mean(time_f_sorted[ind_j:ind_j + spec_half_len])
-#
-#     return mu
-#
-#
-# def powerlawsym(spectro_mat, nu1=2., nu2=2., gamma=1.):
-#     dim_f, dim_t = spectro_mat.shape
-#
-#     mu_k = [powelaw_find_mu(spectro_mat[ff, :]) for ff in range(dim_f)]
-#     mat0 = spectro_mat ** gamma - np.array(mu_k).reshape(dim_f, 1) * np.ones(
-#         (1, dim_t))
-#
-#     mat_a_denom = [(np.sum(mat0[:, tt] ** 2.)) ** .5 for tt in range(dim_t)]
-#     mat_a = mat0 / (
-#                 np.ones((dim_f, 1)) * np.array(mat_a_denom).reshape(1, dim_t))
-#
-#     mu_t = [powelaw_find_mu(spectro_mat[:, tt].T) for tt in range(dim_t)]
-#     mat1 = spectro_mat ** gamma - np.ones((dim_f, 1))*np.array(mu_t).reshape(1, dim_t)
-#     mat_b_denom = [(np.sum(mat1[ff, :] ** 2.)) ** .5 for ff in range(dim_f)]
-#     mat_b = mat1 / (np.array(mat_b_denom).reshape(dim_f, 1) * np.ones((1, dim_t)))
-#
-#     mat_a = mat_a * (mat_a > 0)  # set negative values into zero
-#     mat_b = mat_b * (mat_b > 0)
-#
-#     whistle_powerlaw = (mat_a ** (2.0 * nu1)) * (mat_b ** (2.0 * nu2))
-#
-#     return whistle_powerlaw
+def extract_clip_gillispie(df_sound_gillispie, model_name, clip_out, seltab_out,
+                          use_pcen=True,
+                          remove_pulse=True,
+                          conf_samplerate=48000,
+                          conf_time_reso=0.02,
+                          conf_win_size=1.,
+                          conf_hop_size=0.5,
+                          conf_hop_length=int(0.02*48000),  # int(conf['time_reso']*conf['sample_rate'])
+                          conf_whistle_thre_pos=0.9,
+                          conf_whistle_thre_neg=0.1,
+                          ):
+    conf_time_multi = floor(conf_win_size/conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size/conf_time_reso)
+    classifier_model = load_model(model_name)
+
+    random.seed(0)
+    count_pos = 0
+    count_neg = 0
+    for index, row in df_sound_gillispie.iterrows():
+        print('Species ' + str(index + 1) + '/' + str(len(df_sound_gillispie)) + ': ' + row['folder'])
+
+        wav_list = glob.glob(row['path'] + '/*.wav')
+        wav_list.sort()
+        whistle_time_start_pos = []
+        whistle_time_end_pos = []
+        whistle_score_pos = []
+        begin_path_pos = []
+        file_offset_pos = []
+        whistle_time_start_neg = []
+        whistle_time_end_neg = []
+        whistle_score_neg = []
+        begin_path_neg = []
+        file_offset_neg = []
+
+        for ww in wav_list:
+            print(os.path.basename(ww))
+            samples, _ = librosa.load(ww, sr=conf_samplerate)
+            if np.ndim(samples) > 1:
+                samples = samples[0]
+            whistle_freq = librosa.feature.melspectrogram(samples,
+                                                          sr=conf_samplerate,
+                                                          hop_length=conf_hop_length,
+                                                          power=1)
+            whistle_freq_list = []
+            win_num = floor(
+                (whistle_freq.shape[1] - conf_time_multi) / conf_time_multi_hop) + 1  # 0.5s hop
+
+            if win_num > 0:
+                for nn in range(win_num):
+                    whistle_freq_curr = whistle_freq[:,
+                                        nn * conf_time_multi_hop:
+                                        nn * conf_time_multi_hop + conf_time_multi]
+
+                    whistle_freq_curr = feature_whistleness(whistle_freq_curr, use_pcen, remove_pulse)
+                    whistle_freq_list.append(whistle_freq_curr)
+
+                if len(whistle_freq_list) >= 2:
+                    whistle_image = np.stack(whistle_freq_list)
+                else:
+                    whistle_image = np.expand_dims(whistle_freq_list[0], axis=0)
+                whistle_image_4d = np.expand_dims(whistle_image, axis=3)
+
+                predictions = classifier_model.predict(whistle_image_4d)
+            else:
+                continue
+
+            # extract features here for both positive & negative classes
+            whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
+            whistle_win_ind_neg = np.where(predictions[:, 1] < conf_whistle_thre_neg)[0]
+
+            # fea_out_file = os.path.join(fea_out, row['species'] + '_' + row[
+            #     'deployment'] + '_' + os.path.splitext(os.path.basename(ww))[
+            #                                 0] + '.npz')
+
+            if whistle_win_ind_pos.shape[0] >= 1:
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_pos * conf_hop_size
+                whistle_time_start_pos.append(whistle_time_start_curr)
+                whistle_time_end_pos.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_pos:
+                    count_pos += 1
+                    clip_filename_pos = os.path.join(clip_out, row['species'] + '_' + row['deployment'] + '_' +
+                                                     str(count_pos) +'.wav')
+                    sf.write(clip_filename_pos, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
+
+                # detected whistle score
+                whistle_score_pos.append(predictions[:, 1][whistle_win_ind_pos])
+                begin_path_pos.append([ww] * whistle_win_ind_pos.shape[0])
+                file_offset_pos.append(whistle_win_ind_pos * conf_hop_size)
+
+            if whistle_win_ind_neg.shape[0] >= 1:
+                # random sampling of negative sounds on whistle_win_ind_neg
+                if len(whistle_win_ind_neg) >= 5:  # randomly select at most five noise sound clips
+                    whistle_win_ind_neg = np.random.choice(whistle_win_ind_neg, 5)
+
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_neg * conf_hop_size
+                whistle_time_start_neg.append(whistle_time_start_curr)
+                whistle_time_end_neg.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_neg:
+                    count_neg += 1
+                    clip_filename_neg = os.path.join(clip_out, 'NO' + '_' + row['species'] + '_' + row['deployment']
+                                                     + '_' + str(count_neg) +'.wav')
+                    sf.write(clip_filename_neg, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
+
+                # detected whistle score
+                whistle_score_neg.append(predictions[:, 1][whistle_win_ind_neg])
+                begin_path_neg.append([ww] * whistle_win_ind_neg.shape[0])
+                file_offset_neg.append(whistle_win_ind_neg * conf_hop_size)
+
+        # make sound selection table
+        if len(whistle_time_start_pos) >= 1:
+            if len(whistle_time_start_pos) >= 2:
+                whistle_time_start_pos = np.concatenate(whistle_time_start_pos)
+                whistle_time_end_pos = np.concatenate(whistle_time_end_pos)
+                whistle_score_pos = np.concatenate(whistle_score_pos)
+                begin_path_pos = np.concatenate(begin_path_pos)
+                file_offset_pos = np.concatenate(file_offset_pos)
+            else:  # == 1
+                whistle_time_start_pos = whistle_time_start_pos[0]
+                whistle_time_end_pos = whistle_time_end_pos[0]
+                whistle_score_pos = whistle_score_pos[0]
+                begin_path_pos = begin_path_pos[0]
+                file_offset_pos = file_offset_pos[0]
+            seltab_out_file = os.path.join(seltab_out,
+                                           row['species'] + '_' + row[
+                                               'deployment'] + '_pos.txt')
+            make_sound_sel_table(seltab_out_file,
+                                             whistle_time_start_pos,
+                                             whistle_time_end_pos, begin_path_pos,
+                                             file_offset_pos, whistle_score_pos,
+                                             conf_whistle_thre_pos)
+
+        if len(whistle_time_start_neg) >= 1:
+            if len(whistle_time_start_neg) >= 2:
+                whistle_time_start_neg = np.concatenate(whistle_time_start_neg)
+                whistle_time_end_neg = np.concatenate(whistle_time_end_neg)
+                whistle_score_neg = np.concatenate(whistle_score_neg)
+                begin_path_neg = np.concatenate(begin_path_neg)
+                file_offset_neg = np.concatenate(file_offset_neg)
+            else:  # == 1
+                whistle_time_start_neg = whistle_time_start_neg[0]
+                whistle_time_end_neg = whistle_time_end_neg[0]
+                whistle_score_neg = whistle_score_neg[0]
+                begin_path_neg = begin_path_neg[0]
+                file_offset_neg = file_offset_neg[0]
+            seltab_out_file = os.path.join(seltab_out,
+                                           row['species'] + '_' + row[
+                                               'deployment'] + '_neg.txt')
+            make_sound_sel_table(seltab_out_file, whistle_time_start_neg,
+                                             whistle_time_end_neg, begin_path_neg,
+                                             file_offset_neg, whistle_score_neg,
+                                             conf_whistle_thre_neg)
 
 
-# def nopulse_separation(spectro_mat, harm_dim=(15, 1), per_dim=(1, 15)):
-#     harmonic_filter = np.asarray(harm_dim, dtype=int)
-#     percussion_filter = np.asarray(per_dim, dtype=int)
-#     harmonic_slice = median_filter(spectro_mat, harmonic_filter)
-#     percussion_slice = median_filter(spectro_mat, percussion_filter)
-#     # harmonic_mask = harmonic_slice > percussion_slice  # binary
-#     p_mask = 2.0
-#     harmonic_slice_ = harmonic_slice**p_mask
-#     percussion_slice_ = percussion_slice**p_mask
-#     slice_sum = harmonic_slice_ + percussion_slice_
-#
-#     # spectro_mat_nopulse = spectro_mat * (harmonic_slice_ / slice_sum)
-#     spectro_mat_nopulse = spectro_mat * (percussion_slice_ / slice_sum)
-#     return spectro_mat_nopulse
+def extract_clip_dclde2011(df_sound_dclde2011, model_name, clip_out, seltab_out,
+                          use_pcen=True,
+                          remove_pulse=True,
+                          conf_samplerate=48000,
+                          conf_time_reso=0.02,
+                          conf_win_size=1.,
+                          conf_hop_size=0.5,
+                          conf_hop_length=int(0.02*48000),  # int(conf['time_reso']*conf['sample_rate'])
+                          conf_whistle_thre_pos=0.9,
+                          conf_whistle_thre_neg=0.1,
+                          ):
+    conf_time_multi = floor(conf_win_size/conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size/conf_time_reso)
+    classifier_model = load_model(model_name)
+
+    random.seed(0)
+    count_pos = 0
+    count_neg = 0
+    for index, row in df_sound_dclde2011.iterrows():
+        print('Species ' + str(index + 1) + '/' + str(len(df_sound_dclde2011)) + ': ' + row['folder'])
+
+        wav_list = glob.glob(row['path'] + '/*.wav')
+        wav_list.sort()
+        whistle_time_start_pos = []
+        whistle_time_end_pos = []
+        whistle_score_pos = []
+        begin_path_pos = []
+        file_offset_pos = []
+        whistle_time_start_neg = []
+        whistle_time_end_neg = []
+        whistle_score_neg = []
+        begin_path_neg = []
+        file_offset_neg = []
+
+        for ww in wav_list:
+            print(os.path.basename(ww))
+            samples, _ = librosa.load(ww, sr=conf_samplerate)
+            if np.ndim(samples) > 1:
+                samples = samples[0]
+
+            whistle_freq = librosa.feature.melspectrogram(samples,
+                                                          sr=conf_samplerate,
+                                                          hop_length=conf_hop_length,
+                                                          power=1)
+
+            whistle_freq_list = []
+            win_num = floor((whistle_freq.shape[1] - conf_time_multi) / conf_time_multi_hop) + 1  # 0.5s hop
+
+            if win_num > 0:
+                for nn in range(win_num):
+                    whistle_freq_curr = whistle_freq[:, nn * conf_time_multi_hop:
+                                                        nn * conf_time_multi_hop + conf_time_multi]
+
+                    whistle_freq_curr = feature_whistleness(whistle_freq_curr, use_pcen, remove_pulse)
+                    whistle_freq_list.append(whistle_freq_curr)
+
+                if len(whistle_freq_list) >= 2:
+                    whistle_image = np.stack(whistle_freq_list)
+                else:
+                    whistle_image = np.expand_dims(whistle_freq_list[0], axis=0)
+                whistle_image_4d = np.expand_dims(whistle_image, axis=3)
+
+                predictions = classifier_model.predict(whistle_image_4d)
+            else:
+                continue
+
+            # extract features here for both positive & negative classes
+            whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
+            whistle_win_ind_neg = np.where(predictions[:, 1] < conf_whistle_thre_neg)[0]
+
+            if whistle_win_ind_pos.shape[0] >= 1:
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_pos * conf_hop_size
+                whistle_time_start_pos.append(whistle_time_start_curr)
+                whistle_time_end_pos.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_pos:
+                    count_pos += 1
+                    clip_filename_pos = os.path.join(clip_out, row['species'] + '_' + str(count_pos) +'.wav')
+                    sf.write(clip_filename_pos, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
+
+                # detected whistle score
+                whistle_score_pos.append(predictions[:, 1][whistle_win_ind_pos])
+                begin_path_pos.append([ww] * whistle_win_ind_pos.shape[0])
+                file_offset_pos.append(whistle_win_ind_pos * conf_hop_size)
+
+            if whistle_win_ind_neg.shape[0] >= 1:
+                # random sampling of negative sounds on whistle_win_ind_neg
+                if len(whistle_win_ind_neg) >= 5:  # randomly select at most five noise sound clips
+                    whistle_win_ind_neg = np.random.choice(whistle_win_ind_neg, 5)
+
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_neg * conf_hop_size
+                whistle_time_start_neg.append(whistle_time_start_curr)
+                whistle_time_end_neg.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_neg:
+                    count_neg += 1
+                    clip_filename_neg = os.path.join(clip_out, 'NO' + '_' + row['species']
+                                                     + '_' + str(count_neg) +'.wav')
+                    sf.write(clip_filename_neg, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
+
+                # detected whistle score
+                whistle_score_neg.append(predictions[:, 1][whistle_win_ind_neg])
+                begin_path_neg.append([ww] * whistle_win_ind_neg.shape[0])
+                file_offset_neg.append(whistle_win_ind_neg * conf_hop_size)
+
+        # make sound selection table
+        if len(whistle_time_start_pos) >= 1:
+            if len(whistle_time_start_pos) >= 2:
+                whistle_time_start_pos = np.concatenate(whistle_time_start_pos)
+                whistle_time_end_pos = np.concatenate(whistle_time_end_pos)
+                whistle_score_pos = np.concatenate(whistle_score_pos)
+                begin_path_pos = np.concatenate(begin_path_pos)
+                file_offset_pos = np.concatenate(file_offset_pos)
+            else:  # == 1
+                whistle_time_start_pos = whistle_time_start_pos[0]
+                whistle_time_end_pos = whistle_time_end_pos[0]
+                whistle_score_pos = whistle_score_pos[0]
+                begin_path_pos = begin_path_pos[0]
+                file_offset_pos = file_offset_pos[0]
+            seltab_out_file = os.path.join(seltab_out,
+                                           row['species'] + '_pos.txt')
+            make_sound_sel_table(seltab_out_file,
+                                             whistle_time_start_pos,
+                                             whistle_time_end_pos, begin_path_pos,
+                                             file_offset_pos, whistle_score_pos,
+                                             conf_whistle_thre_pos)
+
+        if len(whistle_time_start_neg) >= 1:
+            if len(whistle_time_start_neg) >= 2:
+                whistle_time_start_neg = np.concatenate(whistle_time_start_neg)
+                whistle_time_end_neg = np.concatenate(whistle_time_end_neg)
+                whistle_score_neg = np.concatenate(whistle_score_neg)
+                begin_path_neg = np.concatenate(begin_path_neg)
+                file_offset_neg = np.concatenate(file_offset_neg)
+            else:  # == 1
+                whistle_time_start_neg = whistle_time_start_neg[0]
+                whistle_time_end_neg = whistle_time_end_neg[0]
+                whistle_score_neg = whistle_score_neg[0]
+                begin_path_neg = begin_path_neg[0]
+                file_offset_neg = file_offset_neg[0]
+            seltab_out_file = os.path.join(seltab_out,
+                                           row['species'] + '_neg.txt')
+            make_sound_sel_table(seltab_out_file,
+                                             whistle_time_start_neg,
+                                             whistle_time_end_neg, begin_path_neg,
+                                             file_offset_neg, whistle_score_neg,
+                                             conf_whistle_thre_neg)
 
 
-# def feature_extract(spectro, freq_low=0):
-#     spectro_median = nopulse_median(spectro[freq_low:, :])
-#     spectro_fea = (avg_sub(spectro_median)).T
-#
-#     return spectro_fea
+def extract_clip_watkin(df_sound_watkin, model_name, clip_out, seltab_out, use_pcen=True, remove_pulse=True,
+                        conf_samplerate=48000,
+                        conf_time_reso=0.02,
+                        conf_win_size=1.,
+                        conf_hop_size=0.5,
+                        conf_hop_length=int(0.02 * 48000),  # int(conf['time_reso']*conf['sample_rate'])
+                        conf_whistle_thre_pos=0.9,
+                        conf_whistle_thre_neg=0.1
+                        ):
+    conf_time_multi = floor(conf_win_size / conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size / conf_time_reso)
+    classifier_model = load_model(model_name)
+
+    random.seed(0)
+    count_pos = 0
+    count_neg = 0
+    for index, row in df_sound_watkin.iterrows():
+        print('Species ' + str(index + 1) + '/' + str(len(df_sound_watkin)) + ': ' + row['folder'])
+
+        wav_list = glob.glob(row['path'] + '/*.wav')
+        wav_list.sort()
+        whistle_time_start_pos = []
+        whistle_time_end_pos = []
+        whistle_score_pos = []
+        begin_path_pos = []
+        file_offset_pos = []
+        whistle_time_start_neg = []
+        whistle_time_end_neg = []
+        whistle_score_neg = []
+        begin_path_neg = []
+        file_offset_neg = []
+
+        for ww in wav_list:
+            print(os.path.basename(ww))
+            samples, _ = librosa.load(ww, sr=conf_samplerate)
+            if np.ndim(samples) > 1:
+                samples = samples[0]
+
+            if samples.shape[0] < conf_samplerate:
+                samples_new = np.zeros(conf_samplerate)
+                samples_new[0:samples.shape[0]] = samples
+                samples = samples_new
+
+            whistle_freq = librosa.feature.melspectrogram(samples, sr=conf_samplerate, hop_length=conf_hop_length,
+                                                          power=1)
+
+            whistle_freq_list = []
+            win_num = floor((whistle_freq.shape[1] - conf_time_multi) / conf_time_multi_hop) + 1  # 0.5s hop
+
+            if win_num > 0:
+                for nn in range(win_num):
+                    whistle_freq_curr = whistle_freq[:, nn * conf_time_multi_hop:
+                                                        nn * conf_time_multi_hop + conf_time_multi]
+
+                    whistle_freq_curr = feature_whistleness(whistle_freq_curr, use_pcen, remove_pulse)
+                    whistle_freq_list.append(whistle_freq_curr)
+
+                if len(whistle_freq_list) >= 2:
+                    whistle_image = np.stack(whistle_freq_list)
+                else:
+                    whistle_image = np.expand_dims(whistle_freq_list[0], axis=0)
+                whistle_image_4d = np.expand_dims(whistle_image, axis=3)
+
+                predictions = classifier_model.predict(whistle_image_4d)
+            else:
+                continue
+
+            # extract features here for both positive & negative classes
+            whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
+            whistle_win_ind_neg = np.where(predictions[:, 1] < conf_whistle_thre_neg)[0]
+
+            if whistle_win_ind_pos.shape[0] >= 1:
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_pos * conf_hop_size
+                whistle_time_start_pos.append(whistle_time_start_curr)
+                whistle_time_end_pos.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_pos:
+                    count_pos += 1
+                    clip_filename_pos = os.path.join(clip_out, row['species'] + '_' + row['deployment'] + '_' + str(count_pos) +'.wav')
+                    sf.write(clip_filename_pos, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
+
+                # detected whistle score
+                whistle_score_pos.append(predictions[:, 1][whistle_win_ind_pos])
+                begin_path_pos.append([ww] * whistle_win_ind_pos.shape[0])
+                file_offset_pos.append(whistle_win_ind_pos * conf_hop_size)
+
+            if whistle_win_ind_neg.shape[0] >= 1:
+                # detected whistle start & end time
+                whistle_time_start_curr = whistle_win_ind_neg * conf_hop_size
+                whistle_time_start_neg.append(whistle_time_start_curr)
+                whistle_time_end_neg.append(whistle_time_start_curr + conf_win_size)
+
+                for ii in whistle_win_ind_neg:
+                    count_neg += 1
+                    clip_filename_neg = os.path.join(clip_out, 'NO' + '_' + row['species'] + '_' + row['deployment']
+                                                     + '_' + str(count_neg) +'.wav')
+                    sf.write(clip_filename_neg, samples[int(floor(ii*conf_hop_size*conf_samplerate)):
+                                                        int(floor((ii*conf_hop_size+conf_win_size)*conf_samplerate))],
+                             conf_samplerate, subtype='PCM_16')
 
 
-def feature_whistleness(spectro, use_pcen=True, remove_pulse=True, unit_vec=True, freq_low=0):
-    if use_pcen:
-        spectro = librosa.pcen(spectro * (2 ** 31))  # apply pcen
-    if remove_pulse:
-        spectro = nopulse_median(spectro[freq_low:, :])  # remove the pulsive noise / click
-    spectro_fea = (avg_sub(spectro)).T  # remove the tonal noise
+                # detected whistle score
+                whistle_score_neg.append(predictions[:, 1][whistle_win_ind_neg])
+                begin_path_neg.append([ww] * whistle_win_ind_neg.shape[0])
+                file_offset_neg.append(whistle_win_ind_neg * conf_hop_size)
 
-    if unit_vec:
-        # vec_len = np.sqrt(np.sum(spectro_fea ** 2.))  # length of vector "spectro"
-        spectro_fea = spectro_fea - spectro_fea.mean()
-        vec_len = np.sum(np.abs(spectro_fea))
-        spectro_fea = spectro_fea/vec_len if vec_len else np.zeros(spectro_fea.shape)
+        # make sound selection table
+        if len(whistle_time_start_pos) >= 1:
+            if len(whistle_time_start_pos) >= 2:
+                whistle_time_start_pos = np.concatenate(whistle_time_start_pos)
+                whistle_time_end_pos = np.concatenate(whistle_time_end_pos)
+                whistle_score_pos = np.concatenate(whistle_score_pos)
+                begin_path_pos = np.concatenate(begin_path_pos)
+                file_offset_pos = np.concatenate(file_offset_pos)
+            else:  # == 1
+                whistle_time_start_pos = whistle_time_start_pos[0]
+                whistle_time_end_pos = whistle_time_end_pos[0]
+                whistle_score_pos = whistle_score_pos[0]
+                begin_path_pos = begin_path_pos[0]
+                file_offset_pos = file_offset_pos[0]
+            seltab_out_file = os.path.join(seltab_out, row['species'] + '_' + row['deployment'] + '_pos.txt')
+            make_sound_sel_table(seltab_out_file, whistle_time_start_pos, whistle_time_end_pos, begin_path_pos,
+                                 file_offset_pos, whistle_score_pos, conf_whistle_thre_pos)
 
-    return spectro_fea
-
-
-# def fea_pcen_nopulse(samples, conf_samplerate, conf_hop_length, freq_min=64, freq_max=128):
-#     mel_spectrogram = librosa.feature.melspectrogram(
-#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
-#
-#     whistle_pcen_no_pulse = fea_pcen_nopulse_from_mel(mel_spectrogram,
-#                                                       freq_min=freq_min,
-#                                                       freq_max=freq_max)
-#
-#     return whistle_pcen_no_pulse
-#
-#
-# def fea_pcen_nopulse_from_mel(melspectro, freq_min=64, freq_max=None):
-#     if freq_max is None:
-#         freq_max = melspectro.shape[0]
-#     whistle_freq = librosa.pcen(melspectro * (2 ** 31))
-#     whistle_freq = nopulse_separation(whistle_freq)
-#     whistle_freq = whistle_freq[freq_min:freq_max, :] + np.finfo(float).eps
-#
-#     fea_sum = np.abs(whistle_freq).sum()
-#     if fea_sum > 0.0:
-#         whistle_freq = whistle_freq / fea_sum
-#     else:
-#         whistle_freq = np.zeros(
-#             (whistle_freq.shape[0], whistle_freq.shape[1]))
-#
-#     return whistle_freq
-#
-#
-# def fea_powerlaw(samples, conf_samplerate, conf_hop_length):
-#     mel_spectrogram = librosa.feature.melspectrogram(
-#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
-#     whistle_powerlaw = powerlaw(mel_spectrogram)
-#
-#     return whistle_powerlaw
-#
-#
-# def fea_pcen(samples, conf_samplerate, conf_hop_length):
-#     mel_spectrogram = librosa.feature.melspectrogram(
-#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
-#     whistle_pcen = librosa.pcen(mel_spectrogram * (2 ** 31))
-#
-#     return whistle_pcen
-#
-#
-# def fea_powerlawsym(samples, conf_samplerate, conf_hop_length):
-#     mel_spectrogram = librosa.feature.melspectrogram(
-#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
-#     whistle_powerlawsym = powerlawsym(mel_spectrogram)
-#
-#     return whistle_powerlawsym
+        if len(whistle_time_start_neg) >= 1:
+            if len(whistle_time_start_neg) >= 2:
+                whistle_time_start_neg = np.concatenate(whistle_time_start_neg)
+                whistle_time_end_neg = np.concatenate(whistle_time_end_neg)
+                whistle_score_neg = np.concatenate(whistle_score_neg)
+                begin_path_neg = np.concatenate(begin_path_neg)
+                file_offset_neg = np.concatenate(file_offset_neg)
+            else:  # == 1
+                whistle_time_start_neg = whistle_time_start_neg[0]
+                whistle_time_end_neg = whistle_time_end_neg[0]
+                whistle_score_neg = whistle_score_neg[0]
+                begin_path_neg = begin_path_neg[0]
+                file_offset_neg = file_offset_neg[0]
+            seltab_out_file = os.path.join(seltab_out, row['species'] + '_' + row['deployment'] + '_neg.txt')
+            make_sound_sel_table(seltab_out_file, whistle_time_start_neg, whistle_time_end_neg, begin_path_neg,
+                                 file_offset_neg, whistle_score_neg, conf_whistle_thre_neg)
 
 
 def extract_fea_oswald(df_sound_oswald, model_name, fea_out, seltab_out,
                        use_pcen=True,
                        remove_pulse=True,
                        conf_samplerate=48000,
+                       conf_time_reso=0.02,
                        conf_win_size=1.,
                        conf_hop_size=0.5,
                        conf_hop_length=int(0.02*48000),  # int(conf['time_reso']*conf['sample_rate'])
-                       conf_time_multi=floor(1./0.02),  # floor(conf['win_size'] / conf['time_reso'])
-                       conf_time_multi_hop=floor(0.5/0.02),  # floor(conf['hop_size'] / conf['time_reso'])
                        conf_whistle_thre_pos=0.9,
                        conf_whistle_thre_neg=0.3,
                        ):
+    conf_time_multi = floor(conf_win_size/conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size/conf_time_reso)
     classifier_model = load_model(model_name)
 
     for index, row in df_sound_oswald.iterrows():
@@ -690,7 +1163,8 @@ def extract_fea_oswald(df_sound_oswald, model_name, fea_out, seltab_out,
                 whistle_image_4d = np.expand_dims(whistle_image, axis=3)
 
                 predictions = classifier_model.predict(whistle_image_4d)
-            # 3 sec!
+            else:
+                continue
 
             # extract features here for both positive & negative classes
             whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
@@ -723,7 +1197,6 @@ def extract_fea_oswald(df_sound_oswald, model_name, fea_out, seltab_out,
                 begin_path_neg.append([ww] * whistle_win_ind_neg.shape[0])
                 file_offset_neg.append(whistle_win_ind_neg * conf_hop_size)
 
-        # if fea_type is not None:
         whistle_image_4d_pos = np.concatenate(whistle_image_4d_pos_list)
         whistle_image_4d_neg = np.concatenate(whistle_image_4d_neg_list)
         fea_out_file = os.path.join(fea_out, row['species'] + '_' + row[
@@ -782,15 +1255,16 @@ def extract_fea_gillispie(df_sound_gillispie, model_name, fea_out, seltab_out,
                           use_pcen=True,
                           remove_pulse=True,
                           conf_samplerate=48000,
-                          # conf_time_reso=0.02,
+                          conf_time_reso=0.02,
                           conf_win_size=1.,
                           conf_hop_size=0.5,
                           conf_hop_length=int(0.02*48000),  # int(conf['time_reso']*conf['sample_rate'])
-                          conf_time_multi=floor(1./0.02),  # floor(conf['win_size'] / conf['time_reso'])
-                          conf_time_multi_hop=floor(0.5/0.02),  # floor(conf['hop_size'] / conf['time_reso'])
                           conf_whistle_thre_pos=0.9,
                           conf_whistle_thre_neg=0.3,
                           ):
+    conf_time_multi = floor(conf_win_size/conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size/conf_time_reso)
+
     classifier_model = load_model(model_name)
     for index, row in df_sound_gillispie.iterrows():
     # for index, row in df_sound_gillispie[:1].iterrows():  # DEBUG
@@ -842,6 +1316,8 @@ def extract_fea_gillispie(df_sound_gillispie, model_name, fea_out, seltab_out,
                 whistle_image_4d = np.expand_dims(whistle_image, axis=3)
 
                 predictions = classifier_model.predict(whistle_image_4d)
+            else:
+                continue
 
             # extract features here for both positive & negative classes
             whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
@@ -927,15 +1403,16 @@ def extract_fea_dclde2011(df_sound_dclde2011, model_name, fea_out, seltab_out,
                           use_pcen=True,
                           remove_pulse=True,
                           conf_samplerate=48000,
-                          # conf_time_reso=0.02,
+                          conf_time_reso=0.02,
                           conf_win_size=1.,
                           conf_hop_size=0.5,
                           conf_hop_length=int(0.02*48000),  # int(conf['time_reso']*conf['sample_rate'])
-                          conf_time_multi=floor(1./0.02),  # floor(conf['win_size'] / conf['time_reso'])
-                          conf_time_multi_hop=floor(0.5/0.02),  # floor(conf['hop_size'] / conf['time_reso'])
                           conf_whistle_thre_pos=0.9,
                           conf_whistle_thre_neg=0.3,
                           ):
+    conf_time_multi = floor(conf_win_size/conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size/conf_time_reso)
+
     classifier_model = load_model(model_name)
     for index, row in df_sound_dclde2011.iterrows():
         print('Species ' + str(index + 1) + '/' + str(len(df_sound_dclde2011)) + ': ' + row['folder'])
@@ -986,6 +1463,8 @@ def extract_fea_dclde2011(df_sound_dclde2011, model_name, fea_out, seltab_out,
                 whistle_image_4d = np.expand_dims(whistle_image, axis=3)
 
                 predictions = classifier_model.predict(whistle_image_4d)
+            else:
+                continue
 
             # extract features here for both positive & negative classes
             whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
@@ -1067,15 +1546,16 @@ def extract_fea_watkin(df_sound_watkin, model_name, fea_out, seltab_out,
                           use_pcen=True,
                           remove_pulse=True,
                           conf_samplerate=48000,
-                          # conf_time_reso=0.02,
+                          conf_time_reso=0.02,
                           conf_win_size=1.,
                           conf_hop_size=0.5,
                           conf_hop_length=int(0.02*48000),  # int(conf['time_reso']*conf['sample_rate'])
-                          conf_time_multi=floor(1./0.02),  # floor(conf['win_size'] / conf['time_reso'])
-                          conf_time_multi_hop=floor(0.5/0.02),  # floor(conf['hop_size'] / conf['time_reso'])
                           conf_whistle_thre_pos=0.9,
                           conf_whistle_thre_neg=0.3,
                           ):
+    conf_time_multi = floor(conf_win_size/conf_time_reso)
+    conf_time_multi_hop = floor(conf_hop_size/conf_time_reso)
+
     classifier_model = load_model(model_name)
     for index, row in df_sound_watkin.iterrows():
         print('Species ' + str(index + 1) + '/' + str(len(df_sound_watkin)) + ': ' + row['folder'])
@@ -1131,6 +1611,8 @@ def extract_fea_watkin(df_sound_watkin, model_name, fea_out, seltab_out,
                 whistle_image_4d = np.expand_dims(whistle_image, axis=3)
 
                 predictions = classifier_model.predict(whistle_image_4d)
+            else:
+                continue
 
             # extract features here for both positive & negative classes
             whistle_win_ind_pos = np.where(predictions[:, 1] > conf_whistle_thre_pos)[0]
@@ -1269,7 +1751,6 @@ def spectro_nonoise(fea_img, alpha=0.003787050936477576):
     return fea_nopulse
 
 
-# Gaussian smoothing
 def gaussian_smoothing(spectro_mat):
     """
     Gaussian smoothing
@@ -1317,3 +1798,157 @@ def data_generator(whistle_image_target_4d, label_target_cat, batch_size, networ
                       i * batch_size:(i + 1) * batch_size, :, :], \
                       label_target_cat[i * batch_size:(i + 1) * batch_size,:]
 
+
+def feature_whistleness(spectro, use_pcen=True, remove_pulse=True, unit_vec=False, freq_low=0):
+    if use_pcen:
+        spectro = librosa.pcen(spectro * (2 ** 31))  # apply pcen
+    if remove_pulse:
+        spectro = nopulse_median(spectro[freq_low:, :])  # remove the pulsive noise / click
+    spectro_fea = (avg_sub(spectro)).T  # remove the tonal noise
+
+    if unit_vec:
+        spectro_fea = spectro_fea - spectro_fea.mean()
+        vec_len = np.sum(np.abs(spectro_fea))
+        spectro_fea = spectro_fea/vec_len if vec_len else np.zeros(spectro_fea.shape)
+
+    return spectro_fea
+
+
+# def unit_vector(fea_4d):
+#     for ii in range(fea_4d.shape[0]):
+#         fea_sum = np.abs(fea_4d[ii, :, :, :]).sum()
+#         if fea_sum:
+#             fea_4d[ii, :, :, :] = fea_4d[ii, :, :, :]/fea_sum
+#         else:
+#             fea_4d[ii, :, :, :] = np.zeros((fea_4d.shape[1], fea_4d.shape[2], 1))
+#
+#     return fea_4d
+
+
+# def powerlaw(spectro_mat, nu1=1., nu2=2., gamma=1.):
+#     dim_f, dim_t = spectro_mat.shape
+#
+#     mu_k = [powelaw_find_mu(spectro_mat[ff, :]) for ff in range(dim_f)]
+#     mat0 = spectro_mat ** gamma - np.array(mu_k).reshape(dim_f, 1) * np.ones(
+#         (1, dim_t))
+#     mat_a_denom = [(np.sum(mat0[:, tt] ** 2.)) ** .5 for tt in range(dim_t)]
+#     mat_a = mat0 / (np.ones((dim_f, 1)) * np.array(mat_a_denom).reshape(1, dim_t))
+#
+#     mat_b_denom = [(np.sum(mat0[ff, :] ** 2.)) ** .5 for ff in range(dim_f)]
+#     mat_b = mat0 / (np.array(mat_b_denom).reshape(dim_f, 1) * np.ones((1, dim_t)))
+#
+#     mat_a = mat_a * (mat_a > 0)  # set negative values into zero
+#     mat_b = mat_b * (mat_b > 0)
+#
+#     whistle_powerlaw = (mat_a ** (2.0 * nu1)) * (mat_b ** (2.0 * nu2))
+#
+#     return whistle_powerlaw
+
+
+# def powelaw_find_mu(time_f):
+#     time_f_sorted = np.sort(time_f)
+#     spec_half_len = int(np.floor(time_f_sorted.shape[0] * .5))
+#     ind_j = np.argmin(
+#         time_f_sorted[spec_half_len:spec_half_len * 2] - time_f_sorted[0:spec_half_len])
+#     mu = np.mean(time_f_sorted[ind_j:ind_j + spec_half_len])
+#
+#     return mu
+#
+#
+# def powerlawsym(spectro_mat, nu1=2., nu2=2., gamma=1.):
+#     dim_f, dim_t = spectro_mat.shape
+#
+#     mu_k = [powelaw_find_mu(spectro_mat[ff, :]) for ff in range(dim_f)]
+#     mat0 = spectro_mat ** gamma - np.array(mu_k).reshape(dim_f, 1) * np.ones(
+#         (1, dim_t))
+#
+#     mat_a_denom = [(np.sum(mat0[:, tt] ** 2.)) ** .5 for tt in range(dim_t)]
+#     mat_a = mat0 / (
+#                 np.ones((dim_f, 1)) * np.array(mat_a_denom).reshape(1, dim_t))
+#
+#     mu_t = [powelaw_find_mu(spectro_mat[:, tt].T) for tt in range(dim_t)]
+#     mat1 = spectro_mat ** gamma - np.ones((dim_f, 1))*np.array(mu_t).reshape(1, dim_t)
+#     mat_b_denom = [(np.sum(mat1[ff, :] ** 2.)) ** .5 for ff in range(dim_f)]
+#     mat_b = mat1 / (np.array(mat_b_denom).reshape(dim_f, 1) * np.ones((1, dim_t)))
+#
+#     mat_a = mat_a * (mat_a > 0)  # set negative values into zero
+#     mat_b = mat_b * (mat_b > 0)
+#
+#     whistle_powerlaw = (mat_a ** (2.0 * nu1)) * (mat_b ** (2.0 * nu2))
+#
+#     return whistle_powerlaw
+
+
+# def nopulse_separation(spectro_mat, harm_dim=(15, 1), per_dim=(1, 15)):
+#     harmonic_filter = np.asarray(harm_dim, dtype=int)
+#     percussion_filter = np.asarray(per_dim, dtype=int)
+#     harmonic_slice = median_filter(spectro_mat, harmonic_filter)
+#     percussion_slice = median_filter(spectro_mat, percussion_filter)
+#     # harmonic_mask = harmonic_slice > percussion_slice  # binary
+#     p_mask = 2.0
+#     harmonic_slice_ = harmonic_slice**p_mask
+#     percussion_slice_ = percussion_slice**p_mask
+#     slice_sum = harmonic_slice_ + percussion_slice_
+#
+#     # spectro_mat_nopulse = spectro_mat * (harmonic_slice_ / slice_sum)
+#     spectro_mat_nopulse = spectro_mat * (percussion_slice_ / slice_sum)
+#     return spectro_mat_nopulse
+
+
+# def feature_extract(spectro, freq_low=0):
+#     spectro_median = nopulse_median(spectro[freq_low:, :])
+#     spectro_fea = (avg_sub(spectro_median)).T
+#
+#     return spectro_fea
+
+
+# def fea_pcen_nopulse(samples, conf_samplerate, conf_hop_length, freq_min=64, freq_max=128):
+#     mel_spectrogram = librosa.feature.melspectrogram(
+#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
+#
+#     whistle_pcen_no_pulse = fea_pcen_nopulse_from_mel(mel_spectrogram,
+#                                                       freq_min=freq_min,
+#                                                       freq_max=freq_max)
+#
+#     return whistle_pcen_no_pulse
+#
+#
+# def fea_pcen_nopulse_from_mel(melspectro, freq_min=64, freq_max=None):
+#     if freq_max is None:
+#         freq_max = melspectro.shape[0]
+#     whistle_freq = librosa.pcen(melspectro * (2 ** 31))
+#     whistle_freq = nopulse_separation(whistle_freq)
+#     whistle_freq = whistle_freq[freq_min:freq_max, :] + np.finfo(float).eps
+#
+#     fea_sum = np.abs(whistle_freq).sum()
+#     if fea_sum > 0.0:
+#         whistle_freq = whistle_freq / fea_sum
+#     else:
+#         whistle_freq = np.zeros(
+#             (whistle_freq.shape[0], whistle_freq.shape[1]))
+#
+#     return whistle_freq
+#
+#
+# def fea_powerlaw(samples, conf_samplerate, conf_hop_length):
+#     mel_spectrogram = librosa.feature.melspectrogram(
+#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
+#     whistle_powerlaw = powerlaw(mel_spectrogram)
+#
+#     return whistle_powerlaw
+#
+#
+# def fea_pcen(samples, conf_samplerate, conf_hop_length):
+#     mel_spectrogram = librosa.feature.melspectrogram(
+#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
+#     whistle_pcen = librosa.pcen(mel_spectrogram * (2 ** 31))
+#
+#     return whistle_pcen
+#
+#
+# def fea_powerlawsym(samples, conf_samplerate, conf_hop_length):
+#     mel_spectrogram = librosa.feature.melspectrogram(
+#         samples, sr=conf_samplerate, hop_length=conf_hop_length, power=1)
+#     whistle_powerlawsym = powerlawsym(mel_spectrogram)
+#
+#     return whistle_powerlawsym

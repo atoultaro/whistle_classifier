@@ -1,6 +1,6 @@
 to to list:
 
-1. normalize the features => done Jan 31, 20212am
+1. DONE - normalize the features => done Jan 31, 20212am
 
 2. check the results why classification fails by finding the sound selection tables and sound files and then seeing them in Raven.
 
@@ -8,9 +8,33 @@ to to list:
 
 4. use MAP as the metric instead of average F1
 
-5. Augmentation. What's the google paper?
+5. Data augmentation.
 
 6. attention visualization
 
-7. BUG - watkin sound selection tables have multiple column names => solved! Feb 1, 2021
+7. DONE - BUG - watkin sound selection tables have multiple column names => solved! Feb 1, 2021
+
+8. DONE - Clean out the four functions "extract_feature_DEPLOYMENT": conf_time_multi & conf_time_multi_hop are redundant.
+
+9. remove the part "48kHz" from the dataset names
+
+10. restructure the folder structure; move the 48kHz raw sounds into the working main folder
+
+
+Data requirements:
+
+1. single channel
+
+2. sampling rate = 48 kHz
+
+3. 16 bits
+
+
+Program preference:
+
+1. Raven program from Center for Conservation Bioacoustics, Cornell University for sound spectrogram visualization
+
+2. The program will generate "sound selection tables" to focus on whistle sound clips, instead of the long sparse
+soundscape sounds.
+
 

@@ -42,11 +42,15 @@ conf_gen['sample_rate'] = 48000
 # conf_gen["num_class"] = len(species_name)
 conf_gen["num_class"] = 2-1
 
-conf_gen['context_winsize'] = 1.0  # sec
-conf_gen['context_hopsize'] = 0.1  # sec
-# conf_gen['context_hopsize'] = 0.5  # sec
-conf_gen['contour_timethre'] = 20  # 0.4 s; 25 for 0.5 s
+# conf_gen['context_winsize'] = 1.0  # sec
+# conf_gen['context_hopsize'] = 0.1  # sec
+# # conf_gen['context_hopsize'] = 0.5  # sec
+# conf_gen['contour_timethre'] = 20  # 0.4 s; 25 for 0.5 s
 # conf_gen['contour_timethre'] = 10  # 0.2 s
+
+conf_gen['context_winsize'] = 2.0  # sec
+conf_gen['context_hopsize'] = 0.2  # sec
+conf_gen['contour_timethre'] = 25  # 25 for 0.5 s
 
 conf_gen['fft_size'] = 4096
 conf_gen['hop_length'] = int(conf_gen['time_reso']*conf_gen['sample_rate'])

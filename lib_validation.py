@@ -1071,7 +1071,7 @@ def metrics_two_fold(y_test, y_pred, log_dir, filename, conf, mode=None):
             print("\nf1 score:")
             print(f1_class_avg)
 
-            if mode is "total":
+            if mode == "total":
                 print("\nHyper-parameters:")
                 # model.summary()
                 print("\nBatch size: " + str(conf['batch_size']))
@@ -1085,7 +1085,7 @@ def metrics_two_fold(y_test, y_pred, log_dir, filename, conf, mode=None):
                 # print("Bidirectional mode: " + str(conf['bi_mod']))
                 # print('Window look back: '+str(conf['win_back']))
                 # print("Train data shuffle: " + str(conf['shuffle']))
-            elif mode is "fold":
+            elif mode == "fold":
                 print("Class weight: " + str(conf['class_weight']))
                 print("Best model: " + str(conf['best_model']))
 
