@@ -13,13 +13,19 @@ import os
 import lib_feature
 
 
-data_source = ['oswald', 'gillispie', 'dclde2011', 'watkin']
+# data_source = ['gillispie', 'dclde2011', 'watkin', 'oswald']
+data_source = ['gillispie', 'dclde2011', 'watkin', 'oswald']
 # data_source = ['oswald']
 # data_source = ['gillispie']
 # data_source = ['dclde2011']
 # data_source = ['watkin']
+
+# 1-sec model
 # model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_p4s_unit_contour_no_pulses/2021-01-31_204503_resnet18_expt_alldata_run1_f1_lr_0.00333/epoch_49_valloss_0.2673_valacc_0.9425.hdf5'  # use_pcen=True, remove_pulse=True
-model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_p2s_contour_no_pulses/2021-01-24_201421_resnet18_expt_alldata_run1_f1_lr_0.00333/epoch_41_valloss_0.3180_valacc_0.9178.hdf5'
+# model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_p2s_contour_no_pulses/2021-01-24_201421_resnet18_expt_alldata_run1_f1_lr_0.00333/epoch_41_valloss_0.3180_valacc_0.9178.hdf5'
+# 2-sec model
+model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/2021-02-02_200514_resnet18_expt_alldata_run0_f1_lr_0.001/epoch_163_valloss_0.2434_valacc_0.9472.hdf5'
+
 species_dict = {'NO': 0, 'BD': 1, 'MH': 2, 'CD': 3, 'STR': 4, 'SPT': 5, 'SPIN': 6, 'PLT': 7, 'RD': 8, 'RT': 9,
                 'WSD': 10, 'FKW': 11, 'BEL': 12, 'KW': 13, 'WBD': 14, 'DUSK': 15, 'FRA': 16, 'PKW': 17, 'LPLT': 18,
                 'NAR': 19, 'CLY': 20, 'SPE': 21, 'ASP': 22}
@@ -40,7 +46,7 @@ for dd in data_source:
         seltab_out = os.path.join(work_path, '__sound_seltab')
         if not os.path.exists(seltab_out):
             os.makedirs(seltab_out)
-        deployment = ['HICEAS2002_48kHz', 'PICEAS2005_48kHz', 'STAR2000', 'STAR2003', 'STAR2006']
+        deployment = ['HICEAS2002_48kHz', 'PICEAS2005_48kHz', 'STAR2000_48kHz', 'STAR2003_48kHz', 'STAR2006']
         species_to_code = {'bottlenose': 'BD', 'longbeaked_common': 'CD', 'shortbeaked_common': 'CD', 'common': 'CD',
                            'striped': 'STR', 'spotted': 'SPT', 'spinner': 'SPIN', 'pilot': 'PLT', 'roughtoothed': 'RT',
                            'false_killer': 'FKW'}

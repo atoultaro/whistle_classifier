@@ -14,3 +14,13 @@ soundfile
 opencv-python
 tensorflow-addons=0.10 for tensorflow 2.2
 sox
+
+specAugment
+In spec_augment_tensorflow.py:
+Add the following lines:
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+from tensorflow_addons.image import sparse_image_warp
+
+Remove:
+from tensorflow.contrib.image import sparse_image_warp

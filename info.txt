@@ -8,7 +8,7 @@ to to list:
 
 4. use MAP as the metric instead of average F1
 
-5. Data augmentation.
+5. *** Data augmentation.
 
 6. attention visualization
 
@@ -20,6 +20,13 @@ to to list:
 
 10. restructure the folder structure; move the 48kHz raw sounds into the working main folder
 
+11. *** Add clip ID into sound selection tables
+
+12. *** Implement the script of merging sound selection tables
+
+13. remove the '__48kHz' from the dataset names
+
+14, change deployment name: all_cuts => allcuts; best_cuts=> bestbuts; add 'dclde2011' to dclde2011
 
 Data requirements:
 

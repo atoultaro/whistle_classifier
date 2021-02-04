@@ -254,7 +254,6 @@ for rr in range(len(learning_rate_list)):
                                               whistle_image_train_all_4d,
                                               label_train_all, conf_gen)
 
-
     # Fourth case
     # three-quarter train & one-quarter validation
     model_type = 'resnet18_expt'
