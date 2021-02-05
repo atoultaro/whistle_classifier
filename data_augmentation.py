@@ -6,7 +6,7 @@ Data augmentation
 Created on 2/3/21
 @author: atoultaro
 """
-import os
+# import os
 import glob
 # import random
 
@@ -16,51 +16,24 @@ import pandas as pd
 from specAugment.spec_augment_tensorflow import *
 
 import lib_feature
-
-
-def wavname_to_meta(this_basename, dataset_name):
-    split_filename = (os.path.splitext(this_basename)[0]).split('_')
-    species_this = split_filename[0]
-    clipid_this = int(split_filename[-1])
-
-    # add the column 'deployment'
-    if dataset_name == 'oswald':
-        deploy_this =  split_filename[1]
-    elif dataset_name == 'gillispie':
-        deploy_this = split_filename[1]
-    elif dataset_name == 'dclde2011':
-        deploy_this = 'dclde2011'
-    elif dataset_name == 'watkin':
-        deploy_this = split_filename[1]+split_filename[2]
-    else:
-        deploy_this = 'NA'
-
-    return species_this, clipid_this, deploy_this
-
-
-def sample_length_normal(samples):
-    if samples.shape[0] <= clip_length:
-        samples_temp = np.zeros(clip_length)
-        samples_temp[0:samples.shape[0]] = samples
-        return samples_temp
-    elif samples.shape[0] > clip_length:
-        return samples[0:clip_length]
-    else:
-        return samples
+from lib_augment import *
 
 
 # priori knowledge
 species_dict = {'NO': 0, 'BD': 1, 'MH': 2, 'CD': 3, 'STR': 4, 'SPT': 5, 'SPIN': 6, 'PLT': 7, 'RD': 8, 'RT': 9,
                 'WSD': 10, 'FKW': 11, 'BEL': 12, 'KW': 13, 'WBD': 14, 'DUSK': 15, 'FRA': 16, 'PKW': 17, 'LPLT': 18,
                 'NAR': 19, 'CLY': 20, 'SPE': 21, 'ASP': 22}
+
+species_all = list(species_dict.keys())
+
 fs = 48000
 time_reso = 0.02
 hop_length = int(time_reso*fs)
 
 clip_length = 2*fs  # 96,000 samples
 freq_low = 50  # mel-scale =~ 2 kHz
-shift_time_max = int(0.5/time_reso)
-shift_freq_max = 10
+shift_time_max = int(0.5/time_reso)  # 25
+shift_freq_max = 20
 
 random.seed(0)
 
@@ -72,7 +45,7 @@ for dd in datasets:
     clip_paths.update({dd: os.path.join(dataset_path, '__'+dd, '__sound_clips')})
 
 # statistics of sound clips
-# build labels, dataframe from the filenames
+print('Build labels & dataframe from the filenames')
 dataset_df = dict()
 for dd in datasets:
     # for dd in [datasets[0]]:
@@ -90,21 +63,6 @@ for dd in datasets:
         species_list.append(species_file)
         clip_id.append(clipid_file)
         deployment_list.append(deploy_file)
-        # split_filename = (os.path.splitext(wav_basename[ww])[0]).split('_')
-        # species_list.append(split_filename[0])
-        # clip_id.append(int(split_filename[-1]))
-        #
-        # # add the column 'deployment'
-        # if dd == 'oswald':
-        #     deployment_list.append(split_filename[1])
-        # elif dd == 'gillispie':
-        #     deployment_list.append(split_filename[1])
-        # elif dd == 'dclde2011':
-        #     deployment_list.append('dclde2011')
-        # elif dd == 'watkin':
-        #     deployment_list.append(split_filename[1]+split_filename[2])
-        # else:
-        #     continue
 
     # build dataframe: dataset, base filename, species, clip id
     dataset_df.update({dd: pd.DataFrame(list(zip([dd]*len(wav_basename), wav_basename, species_list, clip_id, deployment_list)),
@@ -129,8 +87,10 @@ df_total_except_watkin = pd.concat([dataset_df['oswald'], dataset_df['dclde2011'
 df_total_except_watkin.to_csv(os.path.join(dataset_path, 'four_except_watkin.csv'), index=False)
 
 # data augmentation: time & freq shift, warping, add noise, cutoff
+print('Data augmentation: time/freq shift, warping, & adding noise.')
 for dd in datasets:
     # for dd in [datasets[0]]:
+    print('..'+dd)
     df_curr = dataset_df[dd]
     # split into NO vs all species
     df_curr_noise = df_curr[df_curr['species'] == 'NO']
@@ -144,63 +104,46 @@ for dd in datasets:
     filenames_aug = []
 
     # augmentation on species data & extract features
-    for index, row in df_curr_species.iterrows():
-        # for index, row in df_curr_species.sample(n=5).iterrows():
+    # for index, row in df_curr_species.iterrows():
+    for index, row in df_curr_species.sample(n=1000).iterrows():
         print(row['filename'])
         curr_species = species_dict[row['species']]
 
+        # original sound
         curr_clip_path = os.path.join(dataset_path, '__'+dd, '__sound_clips', row['filename'])
-        samples, _ = librosa.load(curr_clip_path, sr=fs)
-        samples = sample_length_normal(samples)
-        samples = samples - samples.mean()
+        samples = load_and_normalize(curr_clip_path, sr=fs, clip_length=clip_length)
         spectro = librosa.feature.melspectrogram(samples, sr=fs, hop_length=hop_length, power=1)
 
-        # original features
         spec_feas_orig.append(lib_feature.feature_whistleness(spectro))
         labels_orig.append(curr_species)
         filenames_orig.append(row['filename'])
 
         # time & freq shifting
-        shift_time = random.randrange(-shift_time_max, shift_time_max+1)
-        shift_freq = random.randrange(-shift_freq_max, shift_freq_max+1)
-        spectro_shift = np.zeros(spectro.shape)
-        noise_low, noise_high = np.percentile(spectro, [0, 20])
-        f_max = spectro_shift.shape[0]
-        t_max = spectro_shift.shape[1]
-        for i in range(f_max):
-            for j in range(t_max):
-                if (i-shift_freq >= 0) & (i-shift_freq < f_max) & (j-shift_time >= 0) & (j-shift_time < t_max):
-                    spectro_shift[i, j] = spectro[i-shift_freq, j-shift_time]
-                else:
-                    spectro_shift[i, j] = random.uniform(noise_low, noise_high)
+        spectro_shift = time_freq_shifting(spectro, shift_time_max, shift_freq_max)
+
         spec_feas_aug.append(lib_feature.feature_whistleness(spectro_shift))
         labels_aug.append(curr_species)
         filenames_aug.append(row['filename'])
-        # para_aug_shift_time.append(shift_time)  # keep track parameters for augmentation
-        # para_aug_shift_freq.append(shift_freq)
+        del spectro_shift
 
         # warping & masking through SpecAugment
         spectro_warp = spec_augment(spectro, time_warping_para=40, frequency_masking_para=5, time_masking_para=20)
         spec_feas_aug.append(lib_feature.feature_whistleness(spectro_warp))
         labels_aug.append(curr_species)
         filenames_aug.append(row['filename'])
+        del spectro_warp
 
         # adding noises from another noise clips
         row_noise = df_curr_noise.sample(n=1).iloc[0]
         curr_noise_path = os.path.join(dataset_path, '__'+dd, '__sound_clips', row_noise['filename'])
-        noise, _ = librosa.load(curr_noise_path, sr=fs)
-        noise = sample_length_normal(noise)
-        noise = noise - noise.mean()
-        alpha = random.uniform(0.7, 0.95)
-        samples_noisy = alpha*samples + (1-alpha)*noise
+        spectro_noisy = add_noise_to_signal(curr_noise_path, samples, fs=fs,
+                                            clip_length=clip_length, hop_length=hop_length)
 
-        spectro_noisy = librosa.feature.melspectrogram(samples_noisy, sr=fs, hop_length=hop_length, power=1)
         spec_feas_aug.append(lib_feature.feature_whistleness(spectro_noisy))
         labels_aug.append(curr_species)
         filenames_aug.append(row['filename'])
-
-        # change contrast: tone down the high magnitudes whereas amplify the low magnitudes
-        # Later
+        del spectro_noisy
+        # Later: change contrast: tone down the high magnitudes whereas amplify the low magnitudes
 
     # combine features & labels
     spec_orig_dataset = np.stack(spec_feas_orig)
@@ -208,9 +151,7 @@ for dd in datasets:
     spec_aug_dataset = np.stack(spec_feas_aug)
     np.savez(os.path.join(dataset_path, dd+'_aug'), spec_aug_dataset=spec_aug_dataset, labels_auc=labels_aug)
 
-    # generate dataframe for augmented data & save to csv: need augmentation parameters
-    # for ff in filenames_aug:
-    #     wavname_to_meta(ff, dd)
+    # Later: generate dataframe for augmented data & save to csv: need augmentation parameters
 
 
 

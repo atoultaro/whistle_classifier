@@ -16,17 +16,25 @@ to to list:
 
 8. DONE - Clean out the four functions "extract_feature_DEPLOYMENT": conf_time_multi & conf_time_multi_hop are redundant.
 
-9. remove the part "48kHz" from the dataset names
+9. ** remove the part "48kHz" from the dataset names
+eg. STR_STAR2000_48kHz_s396_12913.wav remove 48kHz
 
 10. restructure the folder structure; move the 48kHz raw sounds into the working main folder
 
-11. *** Add clip ID into sound selection tables
+11. Done - *** Add clip ID into sound selection tables
 
 12. *** Implement the script of merging sound selection tables
 
-13. remove the '__48kHz' from the dataset names
+13 **change deployment name: all_cuts => allcuts; best_cuts=> bestbuts; add 'dclde2011' to dclde2011;
 
-14, change deployment name: all_cuts => allcuts; best_cuts=> bestbuts; add 'dclde2011' to dclde2011
+14. Many BD in Watkin sounds were not detected by whistleness. The sound length could be too short.
+
+15. Add the clips from watkin (whistle only) to the training of whistleness
+
+16. Add a tree structure
+
+
+
 
 Data requirements:
 
