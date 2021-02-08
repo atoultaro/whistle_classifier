@@ -11,6 +11,17 @@ import random
 
 import librosa
 
+import lib_feature
+
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# # import tensorflow as tf
+# import tensorflow.compat.v1 as tf
+# tf.disable_v2_behavior()
+# # from tensorflow.contrib.image import sparse_image_warp
+# from tensorflow_addons.image import sparse_image_warp
+# from tensorflow.python.framework import constant_op
+
+from PIL import Image
 
 def wavname_to_meta(this_basename, dataset_name):
     """
@@ -77,6 +88,58 @@ def load_and_normalize(sound_path, sr=48000, clip_length=96000):
     return samples
 
 
+def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, clip_length=96000, hop_length=960,
+                         shift_time_max=25, shift_freq_max=20):
+    spec_feas_orig = []
+    labels_orig = []
+    # filenames_orig = []
+
+    # spec_feas_aug = []
+    # labels_aug = []
+    # filenames_aug = []
+
+    # original sound
+    curr_clip_path = os.path.join(dataset_path, '__' + row['dataset'], '__sound_clips', row['filename'])
+    samples = load_and_normalize(curr_clip_path, sr=fs, clip_length=clip_length)
+    spectro = librosa.feature.melspectrogram(samples, sr=fs, hop_length=hop_length, power=1)
+
+    spec_feas_orig.append(lib_feature.feature_whistleness(spectro))
+    labels_orig.append(row['species'])
+    # filenames_orig.append(row['filename'])
+
+    # time & freq shifting
+    spectro_shift = time_freq_shifting(spectro, shift_time_max, shift_freq_max)
+
+    spec_feas_orig.append(lib_feature.feature_whistleness(spectro_shift))
+    labels_orig.append(row['species'])
+    # filenames_aug.append(row['filename'])
+    del spectro_shift
+
+    # warping & masking through SpecAugment
+    spectro_warp = spec_augment(spectro, time_warping_para=80, frequency_masking_para=5, time_masking_para=20,
+                                num_mask=1)
+    spec_feas_orig.append(lib_feature.feature_whistleness(spectro_warp))
+    labels_orig.append(row['species'])
+    # filenames_aug.append(row['filename'])
+    del spectro_warp
+
+    # adding noises from another noise clips
+    # row_noise = df_curr_noise.sample(n=1).iloc[0]
+    curr_noise_path = os.path.join(dataset_path, '__' + row['dataset'], '__sound_clips', row_noise['filename'])
+    spectro_noisy = add_noise_to_signal(curr_noise_path, samples, fs=fs, clip_length=clip_length, hop_length=hop_length)
+
+    spec_feas_orig.append(lib_feature.feature_whistleness(spectro_noisy))
+    labels_orig.append(row['species'])
+    # filenames_aug.append(row['filename'])
+    del spectro_noisy
+
+    # spec_feas_orig = np.stack(spec_feas_orig)
+    # labels_orig = np.stack(labels_orig)
+
+    # return spec_feas_orig, labels_orig, spec_feas_aug, labels_aug
+    return spec_feas_orig, labels_orig
+
+
 def time_freq_shifting(spectro, shift_time_max, shift_freq_max):
     """
     augmentation: shift the spectrogrom up & down, left & right
@@ -122,3 +185,87 @@ def add_noise_to_signal(noise_path, samples, fs=48000, clip_length=96000, hop_le
     return spectro_noisy
 
 
+def spec_augment(mel_spectrogram, time_warping_para=80, frequency_masking_para=20, time_masking_para=20,
+                 num_mask=1):
+    # Step 1 : Time warping
+    tau = mel_spectrogram.shape[1]
+
+    # Image warping control point setting
+    # control_point_locations = np.asarray([[64, 64], [64, 80]])
+    # control_point_locations = constant_op.constant(
+    #     np.float32(np.expand_dims(control_point_locations, 0)))
+    #
+    # control_point_displacements = np.ones(
+    #     control_point_locations.shape.as_list())
+    # control_point_displacements = constant_op.constant(
+    #     np.float32(control_point_displacements))
+
+    # Input: mel_spectrogram; output: warped_mel_spectrogram
+    # mel spectrogram data type convert to tensor constant for sparse_image_warp
+    # mel_spectrogram = mel_spectrogram.reshape([1, mel_spectrogram.shape[0], mel_spectrogram.shape[1], 1])
+    # mel_spectrogram_op = constant_op.constant(np.float32(mel_spectrogram))
+    # w = random.randint(0, time_warping_para)
+    #
+    # warped_mel_spectrogram_op, _ = sparse_image_warp(mel_spectrogram_op,
+    #                                                  source_control_point_locations=control_point_locations,
+    #                                                  dest_control_point_locations=control_point_locations + control_point_displacements,
+    #                                                  interpolation_order=2,
+    #                                                  regularization_weight=0,
+    #                                                  num_boundary_points=0
+    #                                                  )
+    #
+    # # Change data type of warp result to numpy array for masking step
+    # with tf.Session() as sess:
+    #     warped_mel_spectrogram = sess.run(warped_mel_spectrogram_op)
+    #
+    # warped_mel_spectrogram = warped_mel_spectrogram.reshape([warped_mel_spectrogram.shape[1],
+    #                                                          warped_mel_spectrogram.shape[2]])
+
+    warped_mel_spectrogram = time_warp(mel_spectrogram, max_time_warp=time_warping_para, inplace=False)
+
+    # loop Masking line number
+    for i in range(num_mask):
+        # Step 2 : Frequency masking
+        f = np.random.uniform(low=0.0, high=frequency_masking_para)
+        f = int(f)
+        v = 128  # Now hard coding but I will improve soon.
+        f0 = random.randint(0, v - f)
+        warped_mel_spectrogram[f0:f0 + f, :] = 0
+
+        # Step 3 : Time masking
+        t = np.random.uniform(low=0.0, high=time_masking_para)
+        t = int(t)
+        t0 = random.randint(0, tau - t)
+        warped_mel_spectrogram[:, t0:t0 + t] = 0
+
+    return warped_mel_spectrogram
+
+
+def time_warp(x, max_time_warp=80, inplace=False):
+    """time warp for spec augment
+
+    move random center frame by the random width ~ uniform(-window, window)
+    :param numpy.ndarray x: spectrogram (time, freq)
+    :param int max_time_warp: maximum time frames to warp
+    :param bool inplace: overwrite x with the result
+    :param str mode: "PIL" (default, fast, not differentiable) or "sparse_image_warp"
+        (slow, differentiable)
+    :returns numpy.ndarray: time warped spectrogram (time, freq)
+    """
+    window = max_time_warp
+
+    t = x.shape[0]
+    if t - window <= window:
+        return x
+    # NOTE: randrange(a, b) emits a, a + 1, ..., b - 1
+    center = random.randrange(window, t - window)
+    warped = random.randrange(center - window, center + window) + 1  # 1 ... t - 1
+
+    left = Image.fromarray(x[:center]).resize((x.shape[1], warped), Image.BICUBIC)
+    right = Image.fromarray(x[center:]).resize((x.shape[1], t - warped), Image.BICUBIC)
+    if inplace:
+        x[:warped] = left
+        x[warped:] = right
+        return x
+
+    return np.concatenate((left, right), 0)
