@@ -102,15 +102,15 @@ for dd in datasets:
 
     if dd == 'oswald':
         # split the data into two parts:
-        df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == 'HICEAS2002') |
-                                            (df_curr_species['deployment'] == 'STAR2002')]
-        df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == 'HICEAS2002') |
-                                        (df_curr_noise['deployment'] == 'STAR2002')]
+        df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == 'PICEAS2005') |
+                                            (df_curr_species['deployment'] == 'STAR2000')]
+        df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2005') |
+                                        (df_curr_noise['deployment'] == 'STAR2000')]
         dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd+'_part1', dataset_path, fs=fs, clip_length=clip_length,
                                      hop_length=hop_length, shift_time_max=shift_time_max,
                                      shift_freq_max=shift_freq_max)
 
-        df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == 'PICEAS2002') |
+        df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == 'HICEAS2002') |
                                             (df_curr_species['deployment'] == 'STAR2003') |
                                             (df_curr_species['deployment'] == 'STAR2006')]
         df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2002') |
