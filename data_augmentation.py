@@ -51,7 +51,7 @@ print('Build labels & dataframe from the filenames')
 dataset_df = dict()
 for dd in datasets:
     # for dd in [datasets[0]]:
-    print('..'+dd)
+    print('=='+dd)
     # search by the species names in the filenames
     wav_list = glob.glob(clip_paths[dd]+'/*.wav')
     wav_list.sort()
@@ -88,8 +88,6 @@ df_total_except_dclde2011.to_csv(os.path.join(dataset_path, 'four_except_dclde20
 df_total_except_watkin = pd.concat([dataset_df['oswald'], dataset_df['dclde2011'], dataset_df['gillispie']], axis=0)
 df_total_except_watkin.to_csv(os.path.join(dataset_path, 'four_except_watkin.csv'), index=False)
 
-cpu_count = os.cpu_count() - 1
-
 # data augmentation: time & freq shift, warping, add noise, cutoff
 print('Data augmentation: time/freq shift, warping, & adding noise.')
 for dd in datasets:
@@ -102,25 +100,69 @@ for dd in datasets:
     df_curr_noise = df_curr[df_curr['species'] == 'NO']
     print('====Noise clips: ' + str(df_curr_noise.shape[0]))
 
-    pool_fea = mp.Pool(processes=cpu_count)
+    if dd == 'oswald':
+        # split the data into two parts:
+        df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == 'HICEAS2002') |
+                                            (df_curr_species['deployment'] == 'STAR2002')]
+        df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == 'HICEAS2002') |
+                                        (df_curr_noise['deployment'] == 'STAR2002')]
+        dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd+'_part1', dataset_path, fs=fs, clip_length=clip_length,
+                                     hop_length=hop_length, shift_time_max=shift_time_max,
+                                     shift_freq_max=shift_freq_max)
 
-    spec_feas_orig_list = []
-    labels_orig_list = []
-    spec_feas_aug_list = []
-    labels_aug_list = []
+        df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == 'PICEAS2002') |
+                                            (df_curr_species['deployment'] == 'STAR2003') |
+                                            (df_curr_species['deployment'] == 'STAR2006')]
+        df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2002') |
+                                            (df_curr_noise['deployment'] == 'STAR2003') |
+                                            (df_curr_noise['deployment'] == 'STAR2006')]
+        dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise_2, dd+'_part2', dataset_path, fs=fs, clip_length=clip_length,
+                                     hop_length=hop_length, shift_time_max=shift_time_max,
+                                     shift_freq_max=shift_freq_max)
+        # save dataframes into csv files
+        df_curr_species_1.to_csv(os.path.join(dataset_path, dd+'_part1.csv'), index=False)
+        df_curr_species_2.to_csv(os.path.join(dataset_path, dd+'_part2.csv'), index=False)
+        del df_curr_species_1, df_curr_noise_1
+        del df_curr_species_2, df_curr_noise_2
+    elif dd == 'gillispie':
+        # split the data into two parts:
+        df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == '48kHz')]
+        df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == '48kHz')]
+        dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd + '_48kHz', dataset_path, fs=fs,
+                                     clip_length=clip_length, hop_length=hop_length, shift_time_max=shift_time_max,
+                                     shift_freq_max=shift_freq_max)
+        df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == '96kHz')]
+        df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == '96kHz')]
+        dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise_2, dd + '_96kHz', dataset_path, fs=fs,
+                                     clip_length=clip_length, hop_length=hop_length, shift_time_max=shift_time_max,
+                                     shift_freq_max=shift_freq_max)
+        # save dataframes into csv files
+        df_curr_species_1.to_csv(os.path.join(dataset_path, dd+'_48kHz.csv'), index=False)
+        df_curr_species_2.to_csv(os.path.join(dataset_path, dd+'_96kHz.csv'), index=False)
+        del df_curr_species_1, df_curr_noise_1
+        del df_curr_species_2, df_curr_noise_2
+    else:
+        dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dd, dataset_path, fs=fs, clip_length=clip_length,
+                                 hop_length=hop_length, shift_time_max=shift_time_max, shift_freq_max=shift_freq_max)
 
-    debug_n = 1000
-
-    row_list = []
-    row_noise_list = []
-    for index, row in df_curr_species.iterrows():
-        # for index, row in df_curr_species.sample(n=debug_n).iterrows():
-        row_list.append(row)
-    # for index, row_noise in df_curr_noise.iterrows():
+    # pool_fea = mp.Pool(processes=cpu_count)
+    # spec_feas_orig_list = []
+    # labels_orig_list = []
+    # spec_feas_aug_list = []
+    # labels_aug_list = []
+    #
+    # debug_n = 1000
+    #
+    # row_list = []
+    # row_noise_list = []
+    # # for index, row in df_curr_species.iterrows():
+    # for index, row in df_curr_species.sample(n=debug_n).iterrows():
+    #     row_list.append(row)
+    #
     # for index, row_noise in df_curr_noise.sample(n=debug_n, replace=True).iterrows():
-    for index, row_noise in df_curr_noise.sample(n=df_curr_species.shape[0], replace=True).iterrows():
-        row_noise_list.append(row_noise)
-
+    #     # for index, row_noise in df_curr_noise.sample(n=df_curr_species.shape[0], replace=True).iterrows():
+    #     row_noise_list.append(row_noise)
+    #
     # for spec_feas_orig_each, labels_orig_each, spec_feas_aug_each, labels_aug_each in pool_fea.starmap(
     #         fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs),
     #                                   repeat(clip_length), repeat(hop_length), repeat(shift_time_max),
@@ -130,28 +172,34 @@ for dd in datasets:
     #     labels_orig_list.append(labels_orig_each)
     #     spec_feas_aug_list.append(spec_feas_aug_each)
     #     labels_aug_list.append(labels_aug_each)
-    for spec_feas_orig_each, labels_orig_each in pool_fea.starmap(
-            fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs),
-                                      repeat(clip_length), repeat(hop_length), repeat(shift_time_max),
-                                      repeat(shift_freq_max))
-    ):
-        spec_feas_orig_list.append(spec_feas_orig_each)
-        labels_orig_list.append(labels_orig_each)
-
-    pool_fea.close()
-    pool_fea.terminate()
-    pool_fea.join()
-
-    feas_orig = np.concatenate(spec_feas_orig_list)
-    labels_orig = np.concatenate(labels_orig_list)
-    # spec_feas_aug = np.concatenate(spec_feas_aug_list)
+    #
+    # # for spec_feas_orig_each, labels_orig_each in pool_fea.starmap(
+    # #         fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs),
+    # #                                   repeat(clip_length), repeat(hop_length), repeat(shift_time_max),
+    # #                                   repeat(shift_freq_max))
+    # # ):
+    # #     spec_feas_orig_list.append(spec_feas_orig_each)
+    # #     labels_orig_list.append(labels_orig_each)
+    #
+    # pool_fea.close()
+    # pool_fea.terminate()
+    # pool_fea.join()
+    #
+    # feas_orig = np.concatenate(spec_feas_orig_list)
+    # labels_orig = np.concatenate(labels_orig_list)
+    # feas_aug = np.concatenate(spec_feas_aug_list)
     # labels_aug = np.concatenate(labels_aug_list)
+    #
+    # # combine features & labels
+    # # feas_orig = np.stack(spec_feas_orig)
+    # np.savez(os.path.join(dataset_path, dd+'_orig'), feas_orig=feas_orig, labels_orig=labels_orig)
+    # # feas_aug = np.stack(spec_feas_aug)
+    # np.savez(os.path.join(dataset_path, dd+'_aug'), feas_aug=feas_aug, labels_aug=labels_aug)
 
-    # combine features & labels
-    # feas_orig = np.stack(spec_feas_orig)
-    np.savez(os.path.join(dataset_path, dd+'_orig'), feas_orig=feas_orig, labels_orig=labels_orig)
-    # feas_aug = np.stack(spec_feas_aug)
-    # np.savez(os.path.join(dataset_path, dd+'_aug'), feas_aug=feas_aug, labels_auc=labels_aug)
+
+
+
+
 
     # filenames_orig = []
     # filenames_aug = []

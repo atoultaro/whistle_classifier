@@ -6,9 +6,12 @@ Created on 2/4/21
 @author: atoultaro
 """
 import os
-import numpy as np
 import random
+import multiprocessing as mp
+from itertools import repeat
 
+import numpy as np
+import pandas as pd
 import librosa
 
 import lib_feature
@@ -22,6 +25,7 @@ import lib_feature
 # from tensorflow.python.framework import constant_op
 
 from PIL import Image
+
 
 def wavname_to_meta(this_basename, dataset_name):
     """
@@ -41,7 +45,11 @@ def wavname_to_meta(this_basename, dataset_name):
     if dataset_name == 'oswald':
         deploy_this = split_filename[1]
     elif dataset_name == 'gillispie':
-        deploy_this = split_filename[1]
+        # deploy_this = split_filename[1]
+        if split_filename[0] != 'NO':
+            deploy_this = split_filename[1]
+        else:
+            deploy_this = split_filename[2]
     elif dataset_name == 'dclde2011':
         deploy_this = 'dclde2011'
     elif dataset_name == 'watkin':
@@ -88,14 +96,90 @@ def load_and_normalize(sound_path, sr=48000, clip_length=96000):
     return samples
 
 
+def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, dataset_path, fs=48000,
+                                 clip_length=96000, hop_length=960, shift_time_max=25, shift_freq_max=20):
+    """
+    Run data augmentation / feature extraction on one dataset
+    Args:
+        df_curr_species:
+        df_curr_noise:
+        dataset_name:
+        dataset_path:
+        fs:
+        clip_length:
+        hop_length:
+        shift_time_max:
+        shift_freq_max:
+
+    Returns:
+
+    """
+    cpu_count = os.cpu_count() - 1
+    pool_fea = mp.Pool(processes=cpu_count)
+    spec_feas_orig_list = []
+    labels_orig_list = []
+    spec_feas_aug_list = []
+    labels_aug_list = []
+
+    # debug_n = 100  # DEBUG
+
+    row_list = []
+    for index, row in df_curr_species.iterrows():
+        # for index, row in df_curr_species.sample(n=debug_n).iterrows():
+        row_list.append(row)
+
+    row_noise_list = []
+    if df_curr_noise.shape[0] == 0:
+        for ii in range(df_curr_species.shape[0]):
+            # for ii in range(debug_n):
+            row_noise_list.append(pd.Series())
+    else:
+        for index, row_noise in df_curr_noise.sample(n=df_curr_species.shape[0], replace=True).iterrows():
+            # for index, row_noise in df_curr_noise.sample(n=debug_n, replace=True).iterrows():
+            row_noise_list.append(row_noise)
+
+    for spec_feas_orig_each, labels_orig_each, spec_feas_aug_each, labels_aug_each in pool_fea.starmap(
+            fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs),
+                                      repeat(clip_length), repeat(hop_length), repeat(shift_time_max),
+                                      repeat(shift_freq_max))
+    ):
+        spec_feas_orig_list.append(spec_feas_orig_each)
+        labels_orig_list.append(labels_orig_each)
+        spec_feas_aug_list.append(spec_feas_aug_each)
+        labels_aug_list.append(labels_aug_each)
+
+    # for spec_feas_orig_each, labels_orig_each in pool_fea.starmap(
+    #         fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs),
+    #                                   repeat(clip_length), repeat(hop_length), repeat(shift_time_max),
+    #                                   repeat(shift_freq_max))
+    # ):
+    #     spec_feas_orig_list.append(spec_feas_orig_each)
+    #     labels_orig_list.append(labels_orig_each)
+
+    pool_fea.close()
+    pool_fea.terminate()
+    pool_fea.join()
+
+    feas_orig = np.concatenate(spec_feas_orig_list)
+    labels_orig = np.concatenate(labels_orig_list)
+    feas_aug = np.concatenate(spec_feas_aug_list)
+    labels_aug = np.concatenate(labels_aug_list)
+
+    # combine features & labels
+    # feas_orig = np.stack(spec_feas_orig)
+    np.savez(os.path.join(dataset_path, dataset_name+'_orig'), feas_orig=feas_orig, labels_orig=labels_orig)
+    # feas_aug = np.stack(spec_feas_aug)
+    np.savez(os.path.join(dataset_path, dataset_name+'_aug'), feas_aug=feas_aug, labels_aug=labels_aug)
+
+
 def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, clip_length=96000, hop_length=960,
                          shift_time_max=25, shift_freq_max=20):
     spec_feas_orig = []
     labels_orig = []
     # filenames_orig = []
 
-    # spec_feas_aug = []
-    # labels_aug = []
+    spec_feas_aug = []
+    labels_aug = []
     # filenames_aug = []
 
     # original sound
@@ -110,34 +194,41 @@ def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, clip_length=960
     # time & freq shifting
     spectro_shift = time_freq_shifting(spectro, shift_time_max, shift_freq_max)
 
-    spec_feas_orig.append(lib_feature.feature_whistleness(spectro_shift))
-    labels_orig.append(row['species'])
+    # spec_feas_orig.append(lib_feature.feature_whistleness(spectro_shift))
+    # labels_orig.append(row['species'])
+    spec_feas_aug.append(lib_feature.feature_whistleness(spectro_shift))
+    labels_aug.append(row['species'])
     # filenames_aug.append(row['filename'])
     del spectro_shift
 
     # warping & masking through SpecAugment
     spectro_warp = spec_augment(spectro, time_warping_para=80, frequency_masking_para=5, time_masking_para=20,
                                 num_mask=1)
-    spec_feas_orig.append(lib_feature.feature_whistleness(spectro_warp))
-    labels_orig.append(row['species'])
+    # spec_feas_orig.append(lib_feature.feature_whistleness(spectro_warp))
+    # labels_orig.append(row['species'])
+    spec_feas_aug.append(lib_feature.feature_whistleness(spectro_warp))
+    labels_aug.append(row['species'])
     # filenames_aug.append(row['filename'])
     del spectro_warp
 
     # adding noises from another noise clips
     # row_noise = df_curr_noise.sample(n=1).iloc[0]
-    curr_noise_path = os.path.join(dataset_path, '__' + row['dataset'], '__sound_clips', row_noise['filename'])
-    spectro_noisy = add_noise_to_signal(curr_noise_path, samples, fs=fs, clip_length=clip_length, hop_length=hop_length)
+    if row_noise.shape[0] != 0:
+        curr_noise_path = os.path.join(dataset_path, '__' + row['dataset'], '__sound_clips', row_noise['filename'])
+        spectro_noisy = add_noise_to_signal(curr_noise_path, samples, fs=fs, clip_length=clip_length, hop_length=hop_length)
 
-    spec_feas_orig.append(lib_feature.feature_whistleness(spectro_noisy))
-    labels_orig.append(row['species'])
-    # filenames_aug.append(row['filename'])
-    del spectro_noisy
+        # spec_feas_orig.append(lib_feature.feature_whistleness(spectro_noisy))
+        # labels_orig.append(row['species'])
+        spec_feas_aug.append(lib_feature.feature_whistleness(spectro_noisy))
+        labels_aug.append(row['species'])
+        # filenames_aug.append(row['filename'])
+        del spectro_noisy
 
     # spec_feas_orig = np.stack(spec_feas_orig)
     # labels_orig = np.stack(labels_orig)
 
-    # return spec_feas_orig, labels_orig, spec_feas_aug, labels_aug
-    return spec_feas_orig, labels_orig
+    return spec_feas_orig, labels_orig, spec_feas_aug, labels_aug
+    # return spec_feas_orig, labels_orig
 
 
 def time_freq_shifting(spectro, shift_time_max, shift_freq_max):

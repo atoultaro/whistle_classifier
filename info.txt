@@ -31,7 +31,9 @@ eg. STR_STAR2000_48kHz_s396_12913.wav remove 48kHz
 
 15. Add the clips from watkin (whistle only) to the training of whistleness
 
-16. Add a tree structure
+16. Add a tree structure to show the whole project
+
+17. To change the gillispie's sound filenames; remove the species name in the noise signals
 
 
 
