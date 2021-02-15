@@ -35,6 +35,8 @@ eg. STR_STAR2000_48kHz_s396_12913.wav remove 48kHz
 
 17. To change the gillispie's sound filenames; remove the species name in the noise signals
 
+18. Augmentation to improve class imbalance
+
 
 
 

@@ -22,11 +22,13 @@ from lib_augment import *
 
 
 # priori knowledge
-species_dict = {'NO': 0, 'BD': 1, 'MH': 2, 'CD': 3, 'STR': 4, 'SPT': 5, 'SPIN': 6, 'PLT': 7, 'RD': 8, 'RT': 9,
+# species_dict = {'BD': 0, 'MH': 1, 'CD': 2, 'STR': 3, 'SPT': 4, 'SPIN': 5, 'PLT': 6, 'RD': 7, 'RT': 8,
+#                 'WSD': 9, 'FKW': 10, 'BEL': 11, 'KW': 12, 'WBD': 13, 'DUSK': 14, 'FRA': 15, 'PKW': 16, 'LPLT': 17, }
+# remove 'SPE', 'CLY', 'ASP'
+species_dict = {'BD': 1, 'MH': 2, 'CD': 3, 'STR': 4, 'SPT': 5, 'SPIN': 6, 'PLT': 7, 'RD': 8, 'RT': 9,
                 'WSD': 10, 'FKW': 11, 'BEL': 12, 'KW': 13, 'WBD': 14, 'DUSK': 15, 'FRA': 16, 'PKW': 17, 'LPLT': 18,
                 'NAR': 19, 'CLY': 20, 'SPE': 21, 'ASP': 22}
-
-species_all = list(species_dict.keys())
+# species_all = list(species_dict.keys())
 
 fs = 48000
 time_reso = 0.02
@@ -90,8 +92,8 @@ df_total_except_watkin.to_csv(os.path.join(dataset_path, 'four_except_watkin.csv
 
 # data augmentation: time & freq shift, warping, add noise, cutoff
 print('Data augmentation: time/freq shift, warping, & adding noise.')
-for dd in datasets:
-    # for dd in [datasets[0]]:
+# for dd in datasets:
+for dd in [datasets[0]]:
     print('=='+dd)
     df_curr = dataset_df[dd]
     # split into NO vs all species
@@ -102,28 +104,37 @@ for dd in datasets:
 
     if dd == 'oswald':
         # split the data into two parts:
-        df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == 'PICEAS2005') |
-                                            (df_curr_species['deployment'] == 'STAR2000')]
-        df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2005') |
-                                        (df_curr_noise['deployment'] == 'STAR2000')]
-        dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd+'_part1', dataset_path, fs=fs, clip_length=clip_length,
-                                     hop_length=hop_length, shift_time_max=shift_time_max,
-                                     shift_freq_max=shift_freq_max)
+        # df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == 'PICEAS2005') |
+        #                                     (df_curr_species['deployment'] == 'STAR2000')]
+        # df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2005') |
+        #                                 (df_curr_noise['deployment'] == 'STAR2000')]
+        # dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd+'_part1', dataset_path, fs=fs, clip_length=clip_length,
+        #                              hop_length=hop_length, shift_time_max=shift_time_max,
+        #                              shift_freq_max=shift_freq_max)
+        #
+        # df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == 'HICEAS2002') |
+        #                                     (df_curr_species['deployment'] == 'STAR2003') |
+        #                                     (df_curr_species['deployment'] == 'STAR2006')]
+        # df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2002') |
+        #                                     (df_curr_noise['deployment'] == 'STAR2003') |
+        #                                     (df_curr_noise['deployment'] == 'STAR2006')]
+        # dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise_2, dd+'_part2', dataset_path, fs=fs, clip_length=clip_length,
+        #                              hop_length=hop_length, shift_time_max=shift_time_max,
+        #                              shift_freq_max=shift_freq_max)
+        # # save dataframes into csv files
+        # df_curr_species_1.to_csv(os.path.join(dataset_path, dd+'_part1.csv'), index=False)
+        # df_curr_species_2.to_csv(os.path.join(dataset_path, dd+'_part2.csv'), index=False)
+        # del df_curr_species_1, df_curr_noise_1
+        # del df_curr_species_2, df_curr_noise_2
+        for ee in ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']:
+            df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == ee)]
+            df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == ee)]
+            dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd+'_'+ee, dataset_path, fs=fs, clip_length=clip_length,
+                                         hop_length=hop_length, shift_time_max=shift_time_max,
+                                         shift_freq_max=shift_freq_max)
+            df_curr_species_1.to_csv(os.path.join(dataset_path, dd + '_'+ee+'.csv'), index=False)
+            del df_curr_species_1, df_curr_noise_1
 
-        df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == 'HICEAS2002') |
-                                            (df_curr_species['deployment'] == 'STAR2003') |
-                                            (df_curr_species['deployment'] == 'STAR2006')]
-        df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2002') |
-                                            (df_curr_noise['deployment'] == 'STAR2003') |
-                                            (df_curr_noise['deployment'] == 'STAR2006')]
-        dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise_2, dd+'_part2', dataset_path, fs=fs, clip_length=clip_length,
-                                     hop_length=hop_length, shift_time_max=shift_time_max,
-                                     shift_freq_max=shift_freq_max)
-        # save dataframes into csv files
-        df_curr_species_1.to_csv(os.path.join(dataset_path, dd+'_part1.csv'), index=False)
-        df_curr_species_2.to_csv(os.path.join(dataset_path, dd+'_part2.csv'), index=False)
-        del df_curr_species_1, df_curr_noise_1
-        del df_curr_species_2, df_curr_noise_2
     elif dd == 'gillispie':
         # split the data into two parts:
         df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == '48kHz')]

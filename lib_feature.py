@@ -1811,7 +1811,7 @@ def feature_whistleness(spectro, use_pcen=True, remove_pulse=True, unit_vec=Fals
         vec_len = np.sum(np.abs(spectro_fea))
         spectro_fea = spectro_fea/vec_len if vec_len else np.zeros(spectro_fea.shape)
 
-    return spectro_fea
+    return spectro_fea.astype('float32')
 
 
 # def unit_vector(fea_4d):
