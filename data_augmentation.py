@@ -34,6 +34,7 @@ fs = 48000
 time_reso = 0.02
 hop_length = int(time_reso*fs)  #
 
+copies_of_aug = 5
 clip_length = 2*fs  # 96,000 samples
 freq_low = 50  # mel-scale =~ 2 kHz
 shift_time_max = int(0.5/time_reso)  # 25
@@ -128,30 +129,31 @@ for dd in [datasets[0]]:
         # del df_curr_species_2, df_curr_noise_2
         for ee in ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']:
             df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == ee)]
-            df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == ee)]
-            dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd+'_'+ee, dataset_path, fs=fs, clip_length=clip_length,
+            # df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == ee)]
+            dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, dd+'_'+ee, dataset_path, fs=fs,
+                                         copies_of_aug=copies_of_aug, clip_length=clip_length,
                                          hop_length=hop_length, shift_time_max=shift_time_max,
                                          shift_freq_max=shift_freq_max)
             df_curr_species_1.to_csv(os.path.join(dataset_path, dd + '_'+ee+'.csv'), index=False)
-            del df_curr_species_1, df_curr_noise_1
+            del df_curr_species_1
 
     elif dd == 'gillispie':
         # split the data into two parts:
         df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == '48kHz')]
-        df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == '48kHz')]
-        dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd + '_48kHz', dataset_path, fs=fs,
+        # df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == '48kHz')]
+        dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, dd + '_48kHz', dataset_path, fs=fs,
                                      clip_length=clip_length, hop_length=hop_length, shift_time_max=shift_time_max,
                                      shift_freq_max=shift_freq_max)
         df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == '96kHz')]
-        df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == '96kHz')]
-        dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise_2, dd + '_96kHz', dataset_path, fs=fs,
+        # df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == '96kHz')]
+        dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise, dd + '_96kHz', dataset_path, fs=fs,
                                      clip_length=clip_length, hop_length=hop_length, shift_time_max=shift_time_max,
                                      shift_freq_max=shift_freq_max)
         # save dataframes into csv files
         df_curr_species_1.to_csv(os.path.join(dataset_path, dd+'_48kHz.csv'), index=False)
         df_curr_species_2.to_csv(os.path.join(dataset_path, dd+'_96kHz.csv'), index=False)
-        del df_curr_species_1, df_curr_noise_1
-        del df_curr_species_2, df_curr_noise_2
+        del df_curr_species_1
+        del df_curr_species_2
     else:
         dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dd, dataset_path, fs=fs, clip_length=clip_length,
                                  hop_length=hop_length, shift_time_max=shift_time_max, shift_freq_max=shift_freq_max)
