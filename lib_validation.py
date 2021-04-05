@@ -986,7 +986,59 @@ def make_folder_time_now(folder_out='./', folder_comment='model_unknown'):
     return folder_out_now
 
 
-def find_best_model(classifier_path, fmt, is_max=False, purge=True):
+# def find_best_model(classifier_path, fmt, is_max=False, purge=True):
+#     """
+#     Return the path to the model with the best accuracy, given the path to
+#     all the trained classifiers
+#     Args:
+#         classifier_path: path to all the trained classifiers
+#         fmt: e.g. "epoch_\d+_[0-1].\d+_(\d+.\d{4}).hdf5"
+#         'epoch_\d+_valloss_(\d+.\d{4})_valacc_\d+.\d{4}.hdf5'
+#         is_max: use max; otherwise, min
+#         purge: True to purge models files except the best one
+#     Return:
+#         the path of the model with the best accuracy
+#     """
+#     # list all files ending with .hdf5
+#     day_list = sorted(glob.glob(os.path.join(classifier_path + '/', '*.hdf5')))
+#
+#     # re the last 4 digits for accuracy
+#     hdf5_filename = []
+#     hdf5_accu = np.zeros(len(day_list))
+#     for dd in range(len(day_list)):
+#         filename = os.path.basename(day_list[dd])
+#         hdf5_filename.append(filename)
+#         # m = re.search("_F1_(0.\d{4}).hdf5", filename)
+#         # m = re.search("_([0-1].\d{4}).hdf5", filename)
+#         # m = re.search("epoch_\d+_[0-1].\d+_(\d+.\d{4}).hdf5", filename)
+#         m = re.search(fmt, filename)
+#         try:
+#             hdf5_accu[dd] = float(m.groups()[0])
+#         except:
+#             continue
+#
+#     # select the laregest one and write to the variable classifier_file
+#     if len(hdf5_accu) == 0:
+#         best_model_path = ''
+#         best_accu = 0
+#     else:
+#         if is_max is True:
+#             ind_max = np.argmax(hdf5_accu)
+#         else: # use min instead
+#             ind_max = np.argmin(hdf5_accu)
+#         best_model_path = day_list[int(ind_max)]
+#         best_accu = hdf5_accu[ind_max]
+#         # purge all model files except the best_model
+#         if purge:
+#             for ff in day_list:
+#                 if ff != best_model_path:
+#                     os.remove(ff)
+#     print('Best model:'+str(best_accu))
+#     print(best_model_path)
+#     return best_model_path, best_accu
+
+
+def find_best_model(classifier_path, fmt='epoch_\d+_valloss_(\d+.\d{4})_valacc_\d+.\d{4}.hdf5', is_max=False, purge=True):
     """
     Return the path to the model with the best accuracy, given the path to
     all the trained classifiers

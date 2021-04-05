@@ -7,6 +7,7 @@ Created on 2/4/21
 """
 import os
 import random
+from math import ceil, log
 import multiprocessing as mp
 from itertools import repeat
 
@@ -97,7 +98,7 @@ def load_and_normalize(sound_path, sr=48000, clip_length=96000):
 
 
 def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, dataset_path, fs=48000, copies_of_aug=3,
-                                 clip_length=96000, hop_length=960, shift_time_max=25, shift_freq_max=20):
+                                 clip_length=96000, hop_length=960, shift_time_max=25, shift_freq_max=5):
     """
     Run data augmentation / feature extraction on one dataset
     Args:
@@ -138,8 +139,23 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
             # for index, row_noise in df_curr_noise.sample(n=debug_n, replace=True).iterrows():
             row_noise_list.append(row_noise)
 
+    # copies_of_aug: a dictionary from species to class weight
+    species_counts = df_curr_species['species'].value_counts()
+    weight_dict = dict()
+    for ss, count in species_counts.iteritems():
+        weight_dict[ss] = count
+    count_max = max(list(weight_dict.values()))
+    for kk in weight_dict.keys():
+        # weight_dict[kk] = int(ceil(count_max / weight_dict[kk]))
+        weight_dict[kk] = int(ceil(log(count_max / weight_dict[kk])))*2 + copies_of_aug
+
+    copies_of_aug_list = []
+    for index, row in df_curr_species.iterrows():
+        # for index, row in df_curr_species.sample(n=debug_n).iterrows():
+        copies_of_aug_list.append(weight_dict[row['species']])
+
     for spec_feas_orig_each, labels_orig_each, spec_feas_aug_each, labels_aug_each in pool_fea.starmap(
-            fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs), repeat(copies_of_aug),
+            fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs), copies_of_aug_list,
                                       repeat(clip_length), repeat(hop_length), repeat(shift_time_max),
                                       repeat(shift_freq_max))
     ):
@@ -173,7 +189,7 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
 
 
 def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3, clip_length=96000, hop_length=960,
-                         shift_time_max=25, shift_freq_max=20):
+                         shift_time_max=25, shift_freq_max=5):
     spec_feas_orig = []
     labels_orig = []
     # filenames_orig = []
@@ -193,15 +209,16 @@ def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3
     # augmented sound
     aug_count = 0
     while aug_count < copies_of_aug:
-        # (1) adding noises from another noise clips
+        # (1) adding noises from another noise clips0
         # if row_noise.shape[0] != 0:
         curr_noise_path = os.path.join(dataset_path, '__' + row['dataset'], '__sound_clips', row_noise['filename'])
         spectro_aug = add_noise_to_signal(curr_noise_path, samples, fs=fs, clip_length=clip_length, hop_length=hop_length)
         # (2) time & freq shifting
         spectro_aug = time_freq_shifting(spectro_aug, shift_time_max, shift_freq_max)
         # (3) warping & masking through SpecAugment
-        spectro_aug = spec_augment(spectro_aug, time_warping_para=80, frequency_masking_para=5, time_masking_para=40,
+        spectro_aug = spec_augment(spectro_aug, time_warping_para=40, frequency_masking_para=5, time_masking_para=40,
                                    num_mask=1)
+        spectro_aug = spectro_aug*(spectro_aug >= 0)
         spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug))
         labels_aug.append(row['species'])
         del spectro_aug
@@ -279,7 +296,7 @@ def add_noise_to_signal(noise_path, samples, fs=48000, clip_length=96000, hop_le
     return spectro_noisy
 
 
-def spec_augment(mel_spectrogram, time_warping_para=80, frequency_masking_para=20, time_masking_para=20,
+def spec_augment(mel_spectrogram, time_warping_para=40, frequency_masking_para=20, time_masking_para=20,
                  num_mask=1):
     # Step 1 : Time warping
     tau = mel_spectrogram.shape[1]
@@ -335,7 +352,7 @@ def spec_augment(mel_spectrogram, time_warping_para=80, frequency_masking_para=2
     return warped_mel_spectrogram
 
 
-def time_warp(x, max_time_warp=80, inplace=False):
+def time_warp(x, max_time_warp=40, inplace=False):
     """time warp for spec augment
 
     move random center frame by the random width ~ uniform(-window, window)

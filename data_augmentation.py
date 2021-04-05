@@ -38,7 +38,7 @@ copies_of_aug = 5
 clip_length = 2*fs  # 96,000 samples
 freq_low = 50  # mel-scale =~ 2 kHz
 shift_time_max = int(0.5/time_reso)  # 25
-shift_freq_max = 20
+shift_freq_max = 5
 
 random.seed(0)
 
