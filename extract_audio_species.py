@@ -26,9 +26,6 @@ data_source = ['gillispie', 'dclde2011', 'watkin', 'oswald']
 # 2-sec model
 model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/2021-02-02_200514_resnet18_expt_alldata_run0_f1_lr_0.001/epoch_163_valloss_0.2434_valacc_0.9472.hdf5'
 
-species_dict = {'NO': 0, 'BD': 1, 'MH': 2, 'CD': 3, 'STR': 4, 'SPT': 5, 'SPIN': 6, 'PLT': 7, 'RD': 8, 'RT': 9,
-                'WSD': 10, 'FKW': 11, 'BEL': 12, 'KW': 13, 'WBD': 14, 'DUSK': 15, 'FRA': 16, 'PKW': 17, 'LPLT': 18,
-                'NAR': 19, 'CLY': 20, 'SPE': 21, 'ASP': 22}
 # conf_win_size=1.
 # conf_hop_size=0.8
 clip_win_size = 2.
