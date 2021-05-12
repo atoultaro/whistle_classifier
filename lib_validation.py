@@ -75,15 +75,14 @@ def contour_data(file_contour, time_reso):
     return contour_target_ff, time_min, time_max, freq_low, freq_high
 
 
-def fea_ext_dcldc2011(contour_target_list, sound_dir, conf, img_folder,
-                       save_file, plot=False, freq_ind_low=64,
-                       fmin=4000.0, bins_per_octave=36, n_bins=144):
+def fea_ext_dcldc2011(contour_target_list, sound_dir, conf, img_folder, save_file, plot=False):
     '''
     Convert whistle contours into sequences of fixed length
     :param contour_target_list:
     time_reso = 0.1, context_winsize=10.0, ratio_thre=0.02
     :return:
     df_target:
+    # , freq_ind_low=64, fmin=4000.0, bins_per_octave=36, n_bins=144
     '''
     freq_low_all = 192000.0  # an realistic upperbound
     freq_high_all = 0.0
@@ -143,7 +142,7 @@ def fea_ext_dcldc2011(contour_target_list, sound_dir, conf, img_folder,
 
             if whistle_presence_seg.sum() >= conf['contour_timethre']:
                 # feature extraction
-                whistle_image = lib_feature.feature_whistleness(whistle_image)
+                whistle_image = lib_feature.feature_whistleness(whistle_image)  # magnitude normalization?s
                 # whistle_median = species_lib.nopulse_median(whistle_image)
                 # whistle_image = (species_lib.avg_sub(whistle_median)).T
 

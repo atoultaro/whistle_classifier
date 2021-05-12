@@ -15,12 +15,13 @@ from lib_validation import fea_ext_dcldc2011, all_data_train_validate, one_fold_
 
 
 # bin files for training & testing
-bin_dir = '/home/ys587/__Data/__whistle/__dclde2011/__dclde2011_tonals_20190210/label_bin_files/cv4'
+# bin_dir = '/home/ys587/__Data/__whistle/__dclde2011/__dclde2011_tonals_20190210/label_bin_files/cv4'
+bin_dir = '/home/ys587/__Data/__whistle/__whislte_30_species/__dclde2011_label_bin_files/cv4'
 bin_dir_fold = dict()
 for pp in range(4):  # 'bin_dir_fold['pie1']'
     bin_dir_fold['pie'+str(pp+1)] = os.path.join(bin_dir, 'pie'+str(pp+1))
 
-sound_dir = '/home/ys587/__Data/__whistle/__whistle_dclde2011/'
+sound_dir = '/home/ys587/__Data/__whistle/__whislte_30_species/__sound_48k/__whistle_dclde2011/wav'
 species_name = ['bottlenose', 'common', 'spinner', 'melon-headed']
 species_id = {'bottlenose': 0, 'common': 1, 'spinner': 2, 'melon-headed': 3}
 
@@ -44,9 +45,7 @@ conf_gen["num_class"] = 2-1
 
 # conf_gen['context_winsize'] = 1.0  # sec
 # conf_gen['context_hopsize'] = 0.1  # sec
-# # conf_gen['context_hopsize'] = 0.5  # sec
-# conf_gen['contour_timethre'] = 20  # 0.4 s; 25 for 0.5 s
-# conf_gen['contour_timethre'] = 10  # 0.2 s
+# conf_gen['contour_timethre'] = 20  # 0.4 s
 
 conf_gen['context_winsize'] = 2.0  # sec
 conf_gen['context_hopsize'] = 0.2  # sec
@@ -95,8 +94,8 @@ for pp in range(pie_num):
                                                            'pie' + str(pp + 1))
 
 conf_gen['network_type'] = 'cnn'
-conf_gen['recurrent_dropout'] = 0.01
-conf_gen['dense_size'] = 128
+# conf_gen['recurrent_dropout'] = 0.01
+# conf_gen['dense_size'] = 128
 
 # Read species labels, filenames & extract time and frequency sequences
 contour_pie_list = []

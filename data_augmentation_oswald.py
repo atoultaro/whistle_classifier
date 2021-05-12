@@ -44,7 +44,11 @@ random.seed(0)
 
 # where the sound clips are
 dataset_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__dataset'
-datasets = ['oswald', 'gillispie', 'dclde2011', 'watkin']
+datasets = ['oswald']
+# data_unit = ['deployment', 'encounter', 'file']
+data_unit = ['encounter']
+num_fold = 8
+
 clip_paths = dict()
 for dd in datasets:
     clip_paths.update({dd: os.path.join(dataset_path, '__'+dd, '__sound_clips')})
@@ -52,31 +56,33 @@ for dd in datasets:
 # statistics of sound clips
 print('Build labels & dataframe from the filenames')
 dataset_df = dict()
-for dd in [datasets[0]]:
-    # for dd in [datasets[0]]:
+for dd in datasets:
     print('=='+dd)
     # search by the species names in the filenames
     wav_list = glob.glob(clip_paths[dd]+'/*.wav')
     wav_list.sort()
     wav_basename = [os.path.basename(ww) for ww in wav_list]
 
-    species_list = []
-    clip_id = []
-    deployment_list = []
+    species_list = []  # species
+    deployment_list = []  # deployment
+    encounter_list = []  # encounter
+    file_list = []  # file
     for ww in range(len(wav_basename)):
-        species_file, clipid_file, deploy_file = wavname_to_meta(wav_basename[ww], dd)
+        # species_file, clipid_file, deploy_file = wavname_to_meta_oswald(wav_basename[ww], dd)
+        species_file, deploy_file, encounter_file, filename_this = wavname_to_meta_oswald(wav_basename[ww], dd)
         species_list.append(species_file)
-        clip_id.append(clipid_file)
         deployment_list.append(deploy_file)
+        encounter_list.append(deploy_file+'_'+encounter_file)
+        file_list.append(filename_this)
 
     # build dataframe: dataset, base filename, species, clip id
-    dataset_df.update({dd: pd.DataFrame(list(zip([dd]*len(wav_basename), wav_basename, species_list, clip_id, deployment_list)),
-                                        columns=['dataset', 'filename', 'species', 'id', 'deployment'])})
+    dataset_df.update({dd: pd.DataFrame(list(zip([dd]*len(wav_basename), species_list, deployment_list, encounter_list, file_list)),
+                                        columns=['dataset', 'species', 'deployment', 'encounter', 'filename'])})
     dataset_df[dd].to_csv(os.path.join(dataset_path, dd+'.csv'), index=False)
 
 # all four datasets
 df_total = pd.concat(list(dataset_df.values()), axis=0)
-df_total.to_csv(os.path.join(dataset_path, 'four_datasets.csv'), index=False)
+df_total.to_csv(os.path.join(dataset_path, 'oswald_datasets.csv'), index=False)
 
 # stats: how many clips for species, for noise, for each dataset & total?
 # Under construction
@@ -93,70 +99,76 @@ df_total.to_csv(os.path.join(dataset_path, 'four_datasets.csv'), index=False)
 
 # data augmentation: time & freq shift, warping, add noise, cutoff
 print('Data augmentation: time/freq shift, warping, & adding noise.')
-for dd in datasets:
-# for dd in [datasets[0]]:
+# for dd in datasets:
+
+from sklearn.model_selection import StratifiedKFold
+skf = StratifiedKFold(n_splits=num_fold)
+
+for dd in data_unit:
     print('=='+dd)
-    df_curr = dataset_df[dd]
+    df_curr = dataset_df['oswald']
     # split into NO vs all species
     df_curr_species = df_curr[df_curr['species'] != 'NO']
     print('====Sound clips: '+str(df_curr_species.shape[0]))
+    df_curr_species.to_csv(os.path.join(dataset_path, 'df_species_' + dd + '.csv'), index=False)
+
     df_curr_noise = df_curr[df_curr['species'] == 'NO']
     print('====Noise clips: ' + str(df_curr_noise.shape[0]))
+    df_curr_noise.to_csv(os.path.join(dataset_path, 'df_noise_' + dd + '.csv'), index=False)
 
-    if dd == 'oswald':
-        # split the data into two parts:
-        # df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == 'PICEAS2005') |
-        #                                     (df_curr_species['deployment'] == 'STAR2000')]
-        # df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2005') |
-        #                                 (df_curr_noise['deployment'] == 'STAR2000')]
-        # dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise_1, dd+'_part1', dataset_path, fs=fs, clip_length=clip_length,
-        #                              hop_length=hop_length, shift_time_max=shift_time_max,
-        #                              shift_freq_max=shift_freq_max)
-        #
-        # df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == 'HICEAS2002') |
-        #                                     (df_curr_species['deployment'] == 'STAR2003') |
-        #                                     (df_curr_species['deployment'] == 'STAR2006')]
-        # df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == 'PICEAS2002') |
-        #                                     (df_curr_noise['deployment'] == 'STAR2003') |
-        #                                     (df_curr_noise['deployment'] == 'STAR2006')]
-        # dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise_2, dd+'_part2', dataset_path, fs=fs, clip_length=clip_length,
-        #                              hop_length=hop_length, shift_time_max=shift_time_max,
-        #                              shift_freq_max=shift_freq_max)
-        # # save dataframes into csv files
-        # df_curr_species_1.to_csv(os.path.join(dataset_path, dd+'_part1.csv'), index=False)
-        # df_curr_species_2.to_csv(os.path.join(dataset_path, dd+'_part2.csv'), index=False)
-        # del df_curr_species_1, df_curr_noise_1
-        # del df_curr_species_2, df_curr_noise_2
+    if dd == 'deployment':
+        # generate data separated by deployments
         for ee in ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']:
             df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == ee)]
-            # df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == ee)]
-            dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, dd+'_'+ee, dataset_path, fs=fs,
+            dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, ee, dataset_path, fs=fs,
                                          copies_of_aug=copies_of_aug, clip_length=clip_length,
                                          hop_length=hop_length, shift_time_max=shift_time_max,
                                          shift_freq_max=shift_freq_max)
-            df_curr_species_1.to_csv(os.path.join(dataset_path, dd + '_'+ee+'.csv'), index=False)
+            df_curr_species_1.to_csv(os.path.join(dataset_path, ee+'.csv'), index=False)
             del df_curr_species_1
 
-    elif dd == 'gillispie':
-        # split the data into two parts:
-        df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == '48kHz')]
-        # df_curr_noise_1 = df_curr_noise[(df_curr_noise['deployment'] == '48kHz')]
-        dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, dd + '_48kHz', dataset_path, fs=fs,
-                                     clip_length=clip_length, hop_length=hop_length, shift_time_max=shift_time_max,
-                                     shift_freq_max=shift_freq_max)
-        df_curr_species_2 = df_curr_species[(df_curr_species['deployment'] == '96kHz')]
-        # df_curr_noise_2 = df_curr_noise[(df_curr_noise['deployment'] == '96kHz')]
-        dataset_fea_augment_parallel(df_curr_species_2, df_curr_noise, dd + '_96kHz', dataset_path, fs=fs,
-                                     clip_length=clip_length, hop_length=hop_length, shift_time_max=shift_time_max,
-                                     shift_freq_max=shift_freq_max)
-        # save dataframes into csv files
-        df_curr_species_1.to_csv(os.path.join(dataset_path, dd+'_48kHz.csv'), index=False)
-        df_curr_species_2.to_csv(os.path.join(dataset_path, dd+'_96kHz.csv'), index=False)
-        del df_curr_species_1
-        del df_curr_species_2
-    else:
-        dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dd, dataset_path, fs=fs, clip_length=clip_length,
-                                 hop_length=hop_length, shift_time_max=shift_time_max, shift_freq_max=shift_freq_max)
+    if dd == 'encounter':
+        # generate data separated by encounters
+        # use species & encounter as keys!
+        species_list = []
+        encounter_unique = pd.unique(df_curr_species['encounter'])
+        species_unique = []
+        for ee in encounter_unique:
+            species_unique.append(df_curr_species[df_curr_species['encounter']==ee]['species'])
+        for ii in range(len(species_unique)):
+            print(encounter_unique[ii])
+            species_name = pd.unique(species_unique[ii])
+            species_list.append(species_name[0])
+        # make an dataframe consisting of encounter_unique & species_list
+        df_encounter_species = pd.DataFrame({'encounter': encounter_unique, 'species': species_list})
+        df_encounter_species.to_csv(os.path.join(dataset_path, 'encounter_species'+'.csv'), index=False)
+
+        # feature extraction, calculated once. how to index?
+        print('Feature extraction...')
+        for ee in encounter_unique:
+            print(ee)
+            deploy_curr, encounter_curr = ee.split('_')
+            df_curr_species_1 = df_curr_species[(df_curr_species['encounter'] == ee)]
+            print(df_curr_species_1.shape)
+            # dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, ee, dataset_path, fs=fs,
+            #                              copies_of_aug=copies_of_aug, clip_length=clip_length,
+            #                              hop_length=hop_length, shift_time_max=shift_time_max,
+            #                              shift_freq_max=shift_freq_max)
+            # df_curr_species_1.to_csv(os.path.join(dataset_path, ee+'.csv'), index=False)
+            # del df_curr_species_1
+
+        # k-fold split
+        for train_set, test_set in skf.split(encounter_unique, species_list):
+            print('train_set')
+            print(train_set)
+            print('test_set')
+            print(test_set)
+            for ii in test_set:
+                print(species_list[ii]+', ', end='')
+
+    if dd == 'file':
+        # generate data separated by files
+        print('')
 
     # pool_fea = mp.Pool(processes=cpu_count)
     # spec_feas_orig_list = []

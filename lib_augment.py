@@ -64,6 +64,26 @@ def wavname_to_meta(this_basename, dataset_name):
     return species_this, clipid_this, deploy_this
 
 
+def wavname_to_meta_oswald(this_basename, dataset_name):
+    """
+    Translate the filename into meta data such as species, dataset & id
+    this oswald only version adds acoustic encounters.
+    Args:
+        this_basename:
+        dataset_name:
+
+    Returns:
+
+    """
+    split_filename = (os.path.splitext(this_basename)[0]).split('_')
+    species_this = split_filename[0]
+    deploy_this = split_filename[1]
+    encounter_this = split_filename[2]
+    filename_this = this_basename
+
+    return species_this, deploy_this, encounter_this, filename_this
+
+
 def sample_length_normal(samples, clip_length=96000):
     """
     Normalize the sound samples' length
@@ -203,7 +223,8 @@ def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3
     samples = load_and_normalize(curr_clip_path, sr=fs, clip_length=clip_length)
     spectro = librosa.feature.melspectrogram(samples, sr=fs, hop_length=hop_length, power=1)
 
-    spec_feas_orig.append(lib_feature.feature_whistleness(spectro))
+    # spec_feas_orig.append(lib_feature.feature_whistleness(spectro, unit_vec=False))
+    spec_feas_orig.append(lib_feature.feature_whistleness(spectro, unit_vec=True))
     labels_orig.append(row['species'])
 
     # augmented sound
@@ -219,7 +240,8 @@ def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3
         spectro_aug = spec_augment(spectro_aug, time_warping_para=40, frequency_masking_para=5, time_masking_para=40,
                                    num_mask=1)
         spectro_aug = spectro_aug*(spectro_aug >= 0)
-        spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug))
+        # spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug, unit_vec=False))
+        spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug, unit_vec=True))
         labels_aug.append(row['species'])
         del spectro_aug
 
