@@ -14,17 +14,14 @@ import lib_feature
 
 
 # data_source = ['gillispie', 'dclde2011', 'watkin', 'oswald']
-data_source = ['gillispie', 'dclde2011', 'watkin', 'oswald']
-# data_source = ['oswald']
+data_source = ['oswald']
 # data_source = ['gillispie']
 # data_source = ['dclde2011']
 # data_source = ['watkin']
 
-# 1-sec model
-# model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_p4s_unit_contour_no_pulses/2021-01-31_204503_resnet18_expt_alldata_run1_f1_lr_0.00333/epoch_49_valloss_0.2673_valacc_0.9425.hdf5'  # use_pcen=True, remove_pulse=True
-# model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/__fea_mel_pcen_p2s_contour_no_pulses/2021-01-24_201421_resnet18_expt_alldata_run1_f1_lr_0.00333/epoch_41_valloss_0.3180_valacc_0.9178.hdf5'
 # 2-sec model
-model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/2021-02-02_200514_resnet18_expt_alldata_run0_f1_lr_0.001/epoch_163_valloss_0.2434_valacc_0.9472.hdf5'
+# model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/2021-02-02_200514_resnet18_expt_alldata_run0_f1_lr_0.001/epoch_163_valloss_0.2434_valacc_0.9472.hdf5'
+model_whistleness = '/home/ys587/__Data/__whistle/__whislte_30_species/__fit_result_whistleness/2021-05-06_132154_resnet18_expt_alldata_run0_f1_lr_0.001/epoch_198_valloss_0.2310_valacc_0.9516.hdf5'
 
 # conf_win_size=1.
 # conf_hop_size=0.8
@@ -35,15 +32,15 @@ feature_list = []
 for dd in data_source:
     if dd == 'oswald':
         # setting
-        work_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__oswald'
-        whistle_data_oswald = '/home/ys587/__Data/__whistle/__whistle_oswald'  # sound
+        work_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__dataset/__oswald'
+        whistle_data_oswald = '/home/ys587/__Data/__whistle/__whislte_30_species/__sound_48k/__whistle_oswald'  # sound
         clip_out = os.path.join(work_path, '__sound_clips')
         if not os.path.exists(clip_out):
             os.makedirs(clip_out)
         seltab_out = os.path.join(work_path, '__sound_seltab')
         if not os.path.exists(seltab_out):
             os.makedirs(seltab_out)
-        deployment = ['HICEAS2002_48kHz', 'PICEAS2005_48kHz', 'STAR2000_48kHz', 'STAR2003_48kHz', 'STAR2006']
+        deployment = ['HICEAS2002', 'PICEAS2005', 'STAR2000', 'STAR2003', 'STAR2006']
         species_to_code = {'bottlenose': 'BD', 'longbeaked_common': 'CD', 'shortbeaked_common': 'CD', 'common': 'CD',
                            'striped': 'STR', 'spotted': 'SPT', 'spinner': 'SPIN', 'pilot': 'PLT', 'roughtoothed': 'RT',
                            'false_killer': 'FKW'}
@@ -60,7 +57,8 @@ for dd in data_source:
         lib_feature.extract_clip_oswald(df_sound_oswald, model_whistleness, clip_out, seltab_out,
                                         conf_win_size=clip_win_size, conf_hop_size=clip_hop_size,
                                         use_pcen=True,
-                                        remove_pulse=True)
+                                        remove_pulse=True, conf_whistle_thre_pos=0.9, conf_whistle_thre_neg=0.4,
+                                        )
 
     elif dd == 'gillispie':
         # setting

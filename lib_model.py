@@ -7,14 +7,366 @@ Created on 3/7/20
 """
 
 from tensorflow.keras.models import Sequential, load_model, Model
-from tensorflow.keras.layers import Dense, Flatten, Dropout, BatchNormalization, \
-    GlobalMaxPooling2D, ZeroPadding2D, AveragePooling2D, \
-    Activation, add, GlobalAveragePooling2D, ConvLSTM2D, Conv2D, MaxPooling2D, \
-    Conv1D, MaxPooling1D, Input, TimeDistributed, LSTM
+from tensorflow.keras.layers import Dense, Flatten, Dropout, BatchNormalization, Reshape, Lambda, GlobalMaxPooling2D, \
+    ZeroPadding2D, AveragePooling2D, Activation, add, GlobalAveragePooling2D, ConvLSTM2D, Conv2D, MaxPooling2D, \
+    Conv1D, MaxPooling1D, Input, TimeDistributed, LSTM, Concatenate
 from tensorflow.keras import regularizers
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras import backend as K
+import tensorflow_addons.layers.spatial_pyramid_pooling as spp
+
+
 # from residual_attention.models import AttentionResNetCifar10_mod, \
 #     AttentionResNet56, AttentionResNetCifar10_mod_v2, \
 #     AttentionResNetCifar10_mod_v3
+
+
+# Kong's attention
+# def max_pooling(inputs, **kwargs):
+#     input = inputs[0]   # (batch_size, time_steps, freq_bins)
+#     return K.max(input, axis=1)
+def max_pooling(inputs, **kwargs):
+    # input = inputs[0]   # (batch_size, time_steps, freq_bins)
+    return K.max(inputs, axis=1)
+
+
+def average_pooling(inputs, **kwargs):
+    input = inputs[0]   # (batch_size, time_steps, freq_bins)
+    return K.mean(input, axis=1)
+
+
+def attention_pooling(inputs, **kwargs):
+    [out, att] = inputs
+
+    epsilon = 1e-7
+    att = K.clip(att, epsilon, 1. - epsilon)
+    normalized_att = att / K.sum(att, axis=1)[:, None, :]
+
+    return K.sum(out * normalized_att, axis=1)
+
+
+def pooling_shape(input_shape):
+
+    if isinstance(input_shape, list):
+        (sample_num, time_steps, freq_bins) = input_shape[0]
+
+    else:
+        (sample_num, time_steps, freq_bins) = input_shape
+
+    return (sample_num, freq_bins)
+
+
+def model_cnn14_spp(time_steps, freq_bins, classes_num, conv_dim=64, rnn_dim=128, pool_size=2, pool_stride=2,
+                    hidden_units=512, l2_regu=0., drop_rate=0., multilabel=True):
+    # cnn14 SPP
+    input_layer = Input(shape=(time_steps, freq_bins, 1), name='input')
+    # group 1
+    y = Conv2D(conv_dim, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(
+        input_layer)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 2
+    y = Conv2D(conv_dim * 2, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 2, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 3
+    y = Conv2D(conv_dim * 4, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 4, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 4
+    y = Conv2D(conv_dim * 8, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 8, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 5
+    y = Conv2D(conv_dim * 16, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 16, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    #     y = MaxPooling2D(pool_size=(pool_size, 2), strides=(1, 2), padding='same')(y)
+    #     y = Dropout(drop_rate)(y)
+
+    #     # group 6
+    #     y = Conv2D(conv_dim*32, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    #     y = BatchNormalization()(y)
+    #     y = Activation(activation='relu')(y)
+    #     y = Conv2D(conv_dim*32, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    #     y = BatchNormalization()(y)
+    #     y = Activation(activation='relu')(y)
+    #     y = MaxPooling2D(pool_size=(pool_size, 2), strides=(1, 2), padding='same')(y)
+    #     y = Dropout(drop_rate)(y)
+
+    # change dimensions: samples, time, frequency, channels => samples, time, frequency*channels
+    #  dim_cnn = K.int_shape(y)
+    # y = Reshape((dim_cnn[1], dim_cnn[2]*dim_cnn[3]))(y)
+
+    y = spp.SpatialPyramidPooling2D(bins=[[1, 1], [2, 2], [4, 4]], data_format='channels_last')(y)
+    dim_spp = K.int_shape(y)
+    y = Reshape((dim_spp[1] * dim_spp[2],))(y)
+
+    # FC block
+    a1 = Dense(hidden_units)(y)
+    a1 = BatchNormalization()(a1)
+    a1 = Activation('relu')(a1)
+    a1 = Dropout(drop_rate)(a1)
+
+    a2 = Dense(hidden_units)(a1)
+    a2 = BatchNormalization()(a2)
+    a2 = Activation('relu')(a2)
+    a2 = Dropout(drop_rate)(a2)
+
+    a3 = Dense(hidden_units)(a2)
+    a3 = BatchNormalization()(a3)
+    a3 = Activation('relu')(a3)
+    a3 = Dropout(drop_rate)(a3)
+
+    #     y = Dense(hidden_units, activation='relu', name='cnn14_fcn')(y)  # original 512
+    #      y = Dense(hidden_units, activation='relu', name='cnn14_fcn2')(y)  # original 512
+    # x = Dense(classes_num, activation='softmax')(y)
+    #     x = Dense(classes_num, activation='sigmoid')(y)
+    x = Dense(classes_num, activation='sigmoid')(a3)
+
+    # Build model
+    model = Model(inputs=input_layer, outputs=x)
+
+    return model
+
+
+#     a1 = Dense(hidden_units)(y)
+#     a1 = BatchNormalization()(a1)
+#     a1 = Activation('relu')(a1)
+#     a1 = Dropout(drop_rate)(a1)
+
+#     a2 = Dense(hidden_units)(a1)
+#     a2 = BatchNormalization()(a2)
+#     a2 = Activation('relu')(a2)
+#     a2 = Dropout(drop_rate)(a2)
+
+#     output_layer = Dense(classes_num, activation='softmax')(a2)
+
+#     if False:
+#         # Pooling layers 'decision_level_max_pooling':
+#         '''Global max pooling.
+
+#         [1] Choi, Keunwoo, et al. "Automatic tagging using deep convolutional
+#         neural networks." arXiv preprint arXiv:1606.00298 (2016).
+#         '''
+#         cla = Dense(classes_num, activation='sigmoid')(a2)
+
+#         # output_layer = Lambda(
+#         #    max_pooling,
+#         #    output_shape=pooling_shape)(
+#         #    [cla])
+#         output_layer = Lambda(max_pooling)(cla)
+
+#     # Build model
+#     model = Model(inputs=input_layer, outputs=output_layer)
+
+#     return model
+
+
+# cnn14 attention with customized maxpooling
+def model_cnn14_attention_multi(time_steps, freq_bins, classes_num, model_type='feature_level_attention', conv_dim=64,
+                                rnn_dim=128, pool_size=2, pool_stride=2, hidden_units=512, l2_regu=0., drop_rate=0.,
+                                multilabel=True):
+    # Kong's attention
+    # model_type = 'decision_level_max_pooling'  # problem with dimensions of the Lambda layer after training
+    # model_type = 'decision_level_average_pooling' # problem with dimensions of the Lambda layer after training
+    # model_type = 'decision_level_single_attention'
+    # model_type = 'decision_level_multi_attention'
+    # model_type = 'feature_level_attention'
+
+    input_layer = Input(shape=(time_steps, freq_bins, 1), name='input')
+    # group 1
+    y = Conv2D(conv_dim, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(
+        input_layer)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 2
+    y = Conv2D(conv_dim * 2, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 2, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 3
+    y = Conv2D(conv_dim * 4, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 4, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 4
+    y = Conv2D(conv_dim * 8, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 8, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(pool_stride, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 5
+    y = Conv2D(conv_dim * 16, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 16, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(1, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # group 6
+    y = Conv2D(conv_dim * 32, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = Conv2D(conv_dim * 32, kernel_size=(3, 3), strides=(1, 1), padding='same', kernel_regularizer=l2(l2_regu))(y)
+    y = BatchNormalization()(y)
+    y = Activation(activation='relu')(y)
+    y = MaxPooling2D(pool_size=(pool_size, 2), strides=(1, 2), padding='same')(y)
+    y = Dropout(drop_rate)(y)
+
+    # change dimensions: samples, time, frequency, channels => samples, time, frequency*channels
+    dim_cnn = K.int_shape(y)
+    y = Reshape((dim_cnn[1], dim_cnn[2] * dim_cnn[3]))(y)
+
+    a1 = Dense(hidden_units)(y)
+    a1 = BatchNormalization()(a1)
+    a1 = Activation('relu')(a1)
+    a1 = Dropout(drop_rate)(a1)
+
+    a2 = Dense(hidden_units)(a1)
+    a2 = BatchNormalization()(a2)
+    a2 = Activation('relu')(a2)
+    a2 = Dropout(drop_rate)(a2)
+
+    a3 = Dense(hidden_units)(a2)
+    a3 = BatchNormalization()(a3)
+    a3 = Activation('relu')(a3)
+    a3 = Dropout(drop_rate)(a3)
+
+    # Pooling layers
+    if model_type == 'decision_level_max_pooling':
+        '''Global max pooling.
+
+        [1] Choi, Keunwoo, et al. "Automatic tagging using deep convolutional 
+        neural networks." arXiv preprint arXiv:1606.00298 (2016).
+        '''
+        cla = Dense(classes_num, activation='sigmoid')(a3)
+
+        # output_layer = Lambda(
+        #    max_pooling,
+        #    output_shape=pooling_shape)(
+        #    [cla])
+        output_layer = Lambda(max_pooling)(cla)
+
+    elif model_type == 'decision_level_average_pooling':
+        '''Global average pooling.
+
+        [2] Lin, Min, et al. Qiang Chen, and Shuicheng Yan. "Network in 
+        network." arXiv preprint arXiv:1312.4400 (2013).
+        '''
+        cla = Dense(classes_num, activation='sigmoid')(a3)
+        # output_layer = Lambda(
+        #    average_pooling,
+        #    output_shape=pooling_shape)(
+        #    [cla])
+        output_layer = Lambda(average_pooling)(cla)
+
+    elif model_type == 'decision_level_single_attention':
+        '''Decision level single attention pooling.
+        [3] Kong, Qiuqiang, et al. "Audio Set classification with attention
+        model: A probabilistic perspective." arXiv preprint arXiv:1711.00927
+        (2017).
+        '''
+        cla = Dense(classes_num, activation='sigmoid')(a3)
+        att = Dense(classes_num, activation='softmax')(a3)
+        output_layer = Lambda(attention_pooling, output_shape=pooling_shape)([cla, att])
+
+    elif model_type == 'decision_level_multi_attention':
+        '''Decision level multi attention pooling.
+        [4] Yu, Changsong, et al. "Multi-level Attention Model for Weakly
+        Supervised Audio Classification." arXiv preprint arXiv:1803.02353
+        (2018).
+        '''
+        cla1 = Dense(classes_num, activation='sigmoid')(a2)
+        att1 = Dense(classes_num, activation='softmax')(a2)
+        out1 = Lambda(attention_pooling, output_shape=pooling_shape)([cla1, att1])
+
+        cla2 = Dense(classes_num, activation='sigmoid')(a3)
+        att2 = Dense(classes_num, activation='softmax')(a3)
+        out2 = Lambda(attention_pooling, output_shape=pooling_shape)([cla2, att2])
+
+        b1 = Concatenate(axis=-1)([out1, out2])
+        b1 = Dense(classes_num)(b1)
+
+        if multilabel:
+            output_layer = Activation('sigmoid')(b1)
+        else:
+            output_layer = Activation('softmax')(b1)
+
+    elif model_type == 'feature_level_attention':
+        '''Feature level attention.
+        [1] Kong, Qiuqiang, et al. "Weakly labelled audioset tagging with 
+        attention neural networks." (2019).
+        '''
+        cla = Dense(hidden_units, activation='linear')(a3)
+        att = Dense(hidden_units, activation='sigmoid')(a3)
+        b1 = Lambda(attention_pooling, output_shape=pooling_shape)([cla, att])
+
+        b1 = BatchNormalization()(b1)
+        b1 = Activation(activation='relu')(b1)
+        b1 = Dropout(drop_rate)(b1)
+
+        if multilabel:
+            output_layer = Dense(classes_num, activation='sigmoid')(b1)
+        else:
+            output_layer = Dense(classes_num, activation='softmax')(b1)
+
+    else:
+        raise Exception("Incorrect model_type!")
+
+    # Build model
+    model = Model(inputs=input_layer, outputs=output_layer)
+
+    return model
 
 
 def lenet_dropout_input_conv(conf):

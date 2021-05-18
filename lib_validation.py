@@ -20,7 +20,7 @@ import re
 from sklearn.metrics import confusion_matrix, balanced_accuracy_score, classification_report, f1_score
 from sklearn.model_selection import train_test_split
 import librosa
-from tensorflow.keras import backend
+from tensorflow.keras import backend, utils
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.optimizers import Adadelta
@@ -34,6 +34,58 @@ from lib_feature import data_generator
 from contextlib import redirect_stdout
 import itertools
 from lib_model import resnet34_expt, resnet18_expt
+
+
+# data generator
+class DataGenerator(utils.Sequence):
+    def __init__(self, feature, label, batch_size=32, num_classes=None, shuffle=True):
+        self.batch_size = batch_size
+        self.X = feature
+        self.X_dim = len(feature.shape)
+        self.y = to_categorical(label, num_classes)
+        self.indices = np.arange(self.y.shape[0])
+        self.num_classes = num_classes
+        self.shuffle = shuffle
+
+        # self.index = np.arange(len(self.indices))
+        # self.df = dataframe
+        # self.indices = self.df.index.tolist()
+        # self.x_col = x_col
+        # self.y_col = y_col
+
+        self.on_epoch_end()
+
+    def __len__(self):
+        return int(floor(len(self.indices) / self.batch_size))  # return label.shape[0]
+
+    def __getitem__(self, index):
+        # index = self.index[index * self.batch_size:(index + 1) * self.batch_size]
+        # batch = [self.indices[k] for k in index]
+        batch = list(range(index * self.batch_size, (index + 1) * self.batch_size))
+
+        X, y = self.__get_data(batch)
+        return X, y
+
+    def on_epoch_end(self):
+        if self.shuffle == True:
+            np.random.shuffle(self.indices)
+
+    def __get_data(self, batch):
+        y = np.zeros((self.batch_size, self.y.shape[1]))
+
+        if self.X_dim == 3:
+            X = np.zeros((self.batch_size, self.X.shape[1], self.X.shape[2]))
+            for i, id in enumerate(batch):
+                X[i, :, :] = self.X[id, :, :]  # logic
+                y[i, :] = self.y[id, :]  # labels
+
+        elif self.X_dim == 4:
+            X = np.zeros((self.batch_size, self.X.shape[1], self.X.shape[2], self.X.shape[3]))
+            for i, id in enumerate(batch):
+                X[i, :, :, :] = self.X[id, :, :, :]  # logic
+                y[i, :] = self.y[id, :]  # labels
+
+        return X, y
 
 
 def contour_data(file_contour, time_reso):
@@ -1037,7 +1089,59 @@ def make_folder_time_now(folder_out='./', folder_comment='model_unknown'):
 #     return best_model_path, best_accu
 
 
-def find_best_model(classifier_path, fmt='epoch_\d+_valloss_(\d+.\d{4})_valacc_\d+.\d{4}.hdf5', is_max=False, purge=True):
+# def find_best_model(classifier_path, fmt='epoch_\d+_valloss_(\d+.\d{4})_valacc_\d+.\d{4}.hdf5', is_max=False, purge=True):
+#     """
+#     Return the path to the model with the best accuracy, given the path to
+#     all the trained classifiers
+#     Args:
+#         classifier_path: path to all the trained classifiers
+#         fmt: e.g. "epoch_\d+_[0-1].\d+_(\d+.\d{4}).hdf5"
+#         'epoch_\d+_valloss_(\d+.\d{4})_valacc_\d+.\d{4}.hdf5'
+#         is_max: use max; otherwise, min
+#         purge: True to purge models files except the best one
+#     Return:
+#         the path of the model with the best accuracy
+#     """
+#     # list all files ending with .hdf5
+#     day_list = sorted(glob.glob(os.path.join(classifier_path + '/', '*.hdf5')))
+#
+#     # re the last 4 digits for accuracy
+#     hdf5_filename = []
+#     hdf5_accu = np.zeros(len(day_list))
+#     for dd in range(len(day_list)):
+#         filename = os.path.basename(day_list[dd])
+#         hdf5_filename.append(filename)
+#         # m = re.search("_F1_(0.\d{4}).hdf5", filename)
+#         # m = re.search("_([0-1].\d{4}).hdf5", filename)
+#         # m = re.search("epoch_\d+_[0-1].\d+_(\d+.\d{4}).hdf5", filename)
+#         m = re.search(fmt, filename)
+#         try:
+#             hdf5_accu[dd] = float(m.groups()[0])
+#         except:
+#             continue
+#
+#     # select the laregest one and write to the variable classifier_file
+#     if len(hdf5_accu) == 0:
+#         best_model_path = ''
+#         best_accu = 0
+#     else:
+#         if is_max is True:
+#             ind_max = np.argmax(hdf5_accu)
+#         else: # use min instead
+#             ind_max = np.argmin(hdf5_accu)
+#         best_model_path = day_list[int(ind_max)]
+#         best_accu = hdf5_accu[ind_max]
+#         # purge all model files except the best_model
+#         if purge:
+#             for ff in day_list:
+#                 if ff != best_model_path:
+#                     os.remove(ff)
+#     print('Best model:'+str(best_accu))
+#     print(best_model_path)
+#     return best_model_path, best_accu
+
+
+def find_best_model(classifier_path, fmt='epoch_\d+_valloss_(\d+.\d{4})_valacc_(\d+.\d{4}).hdf5', is_max=True, purge=True):
     """
     Return the path to the model with the best accuracy, given the path to
     all the trained classifiers
@@ -1064,7 +1168,8 @@ def find_best_model(classifier_path, fmt='epoch_\d+_valloss_(\d+.\d{4})_valacc_\
         # m = re.search("epoch_\d+_[0-1].\d+_(\d+.\d{4}).hdf5", filename)
         m = re.search(fmt, filename)
         try:
-            hdf5_accu[dd] = float(m.groups()[0])
+            #  hdf5_accu[dd] = float(m.groups()[0])
+            hdf5_accu[dd] = float(m.groups()[1])
         except:
             continue
 

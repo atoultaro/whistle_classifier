@@ -159,25 +159,26 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
             # for index, row_noise in df_curr_noise.sample(n=debug_n, replace=True).iterrows():
             row_noise_list.append(row_noise)
 
-    # copies_of_aug: a dictionary from species to class weight
-    species_counts = df_curr_species['species'].value_counts()
-    weight_dict = dict()
-    for ss, count in species_counts.iteritems():
-        weight_dict[ss] = count
-    count_max = max(list(weight_dict.values()))
-    for kk in weight_dict.keys():
-        # weight_dict[kk] = int(ceil(count_max / weight_dict[kk]))
-        weight_dict[kk] = int(ceil(log(count_max / weight_dict[kk])))*2 + copies_of_aug
+    # copies_of_aug: a dictionary from species to class weight   <<== for what?
+    # species_counts = df_curr_species['species'].value_counts()
+    # weight_dict = dict()
+    # for ss, count in species_counts.iteritems():
+    #     weight_dict[ss] = count
+    # count_max = max(list(weight_dict.values()))
+    # for kk in weight_dict.keys():
+    #     # weight_dict[kk] = int(ceil(count_max / weight_dict[kk]))
+    #     weight_dict[kk] = int(ceil(log(count_max / weight_dict[kk])))*2 + copies_of_aug
+    #
+    # copies_of_aug_list = []
+    # for index, row in df_curr_species.iterrows():
+    #     # for index, row in df_curr_species.sample(n=debug_n).iterrows():
+    #     copies_of_aug_list.append(weight_dict[row['species']])
 
-    copies_of_aug_list = []
-    for index, row in df_curr_species.iterrows():
-        # for index, row in df_curr_species.sample(n=debug_n).iterrows():
-        copies_of_aug_list.append(weight_dict[row['species']])
 
     for spec_feas_orig_each, labels_orig_each, spec_feas_aug_each, labels_aug_each in pool_fea.starmap(
-            fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs), copies_of_aug_list,
-                                      repeat(clip_length), repeat(hop_length), repeat(shift_time_max),
-                                      repeat(shift_freq_max))
+            fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs),
+                                      repeat(copies_of_aug), repeat(clip_length), repeat(hop_length),
+                                      repeat(shift_time_max), repeat(shift_freq_max))
     ):
         spec_feas_orig_list.append(spec_feas_orig_each)
         labels_orig_list.append(labels_orig_each)
@@ -207,6 +208,8 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
     # feas_aug = np.stack(spec_feas_aug)
     np.savez(os.path.join(dataset_path, dataset_name+'_aug'), feas_aug=feas_aug, labels_aug=labels_aug)
 
+    return feas_orig, labels_orig, feas_aug, labels_aug
+
 
 def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3, clip_length=96000, hop_length=960,
                          shift_time_max=25, shift_freq_max=5):
@@ -223,8 +226,8 @@ def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3
     samples = load_and_normalize(curr_clip_path, sr=fs, clip_length=clip_length)
     spectro = librosa.feature.melspectrogram(samples, sr=fs, hop_length=hop_length, power=1)
 
-    # spec_feas_orig.append(lib_feature.feature_whistleness(spectro, unit_vec=False))
-    spec_feas_orig.append(lib_feature.feature_whistleness(spectro, unit_vec=True))
+    spec_feas_orig.append(lib_feature.feature_whistleness(spectro, unit_vec=False))
+    # spec_feas_orig.append(lib_feature.feature_whistleness(spectro, unit_vec=True))
     labels_orig.append(row['species'])
 
     # augmented sound
@@ -240,8 +243,8 @@ def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3
         spectro_aug = spec_augment(spectro_aug, time_warping_para=40, frequency_masking_para=5, time_masking_para=40,
                                    num_mask=1)
         spectro_aug = spectro_aug*(spectro_aug >= 0)
-        # spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug, unit_vec=False))
-        spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug, unit_vec=True))
+        spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug, unit_vec=False))
+        # spec_feas_aug.append(lib_feature.feature_whistleness(spectro_aug, unit_vec=True))
         labels_aug.append(row['species'])
         del spectro_aug
 

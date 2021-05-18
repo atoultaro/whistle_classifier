@@ -104,71 +104,96 @@ print('Data augmentation: time/freq shift, warping, & adding noise.')
 from sklearn.model_selection import StratifiedKFold
 skf = StratifiedKFold(n_splits=num_fold)
 
-for dd in data_unit:
-    print('=='+dd)
-    df_curr = dataset_df['oswald']
-    # split into NO vs all species
-    df_curr_species = df_curr[df_curr['species'] != 'NO']
-    print('====Sound clips: '+str(df_curr_species.shape[0]))
-    df_curr_species.to_csv(os.path.join(dataset_path, 'df_species_' + dd + '.csv'), index=False)
+# for dd in data_unit:
+print('=='+dd)
+df_curr = dataset_df['oswald']
+# split into NO vs all species
+df_curr_species = df_curr[df_curr['species'] != 'NO']
+print('====Sound clips: '+str(df_curr_species.shape[0]))
+df_curr_species.to_csv(os.path.join(dataset_path, 'df_species_' + dd + '.csv'), index=False)
 
-    df_curr_noise = df_curr[df_curr['species'] == 'NO']
-    print('====Noise clips: ' + str(df_curr_noise.shape[0]))
-    df_curr_noise.to_csv(os.path.join(dataset_path, 'df_noise_' + dd + '.csv'), index=False)
+df_curr_noise = df_curr[df_curr['species'] == 'NO']
+print('====Noise clips: ' + str(df_curr_noise.shape[0]))
+df_curr_noise.to_csv(os.path.join(dataset_path, 'df_noise_' + dd + '.csv'), index=False)
 
-    if dd == 'deployment':
-        # generate data separated by deployments
-        for ee in ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']:
-            df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == ee)]
-            dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, ee, dataset_path, fs=fs,
-                                         copies_of_aug=copies_of_aug, clip_length=clip_length,
-                                         hop_length=hop_length, shift_time_max=shift_time_max,
-                                         shift_freq_max=shift_freq_max)
-            df_curr_species_1.to_csv(os.path.join(dataset_path, ee+'.csv'), index=False)
-            del df_curr_species_1
+# debug
+# df_curr_species = df_curr_species.sample(5000)
+# df_curr_noise = df_curr_noise.sample(5000)
 
-    if dd == 'encounter':
-        # generate data separated by encounters
-        # use species & encounter as keys!
-        species_list = []
-        encounter_unique = pd.unique(df_curr_species['encounter'])
-        species_unique = []
-        for ee in encounter_unique:
-            species_unique.append(df_curr_species[df_curr_species['encounter']==ee]['species'])
-        for ii in range(len(species_unique)):
-            print(encounter_unique[ii])
-            species_name = pd.unique(species_unique[ii])
-            species_list.append(species_name[0])
-        # make an dataframe consisting of encounter_unique & species_list
-        df_encounter_species = pd.DataFrame({'encounter': encounter_unique, 'species': species_list})
-        df_encounter_species.to_csv(os.path.join(dataset_path, 'encounter_species'+'.csv'), index=False)
+# feature extraction and indexing
+# how to return the features?
+feas_orig, labels_orig, feas_aug, labels_aug = dataset_fea_augment_parallel(df_curr_species, df_curr_noise, 'all',
+                                                                            dataset_path, fs=fs,
+                             copies_of_aug=copies_of_aug, clip_length=clip_length,
+                             hop_length=hop_length, shift_time_max=shift_time_max,
+                             shift_freq_max=shift_freq_max)
+df_curr_species.to_csv(os.path.join(dataset_path, 'all_species.csv'), index=False)
+df_curr_noise.to_csv(os.path.join(dataset_path, 'all_noise.csv'), index=False)
 
-        # feature extraction, calculated once. how to index?
-        print('Feature extraction...')
-        for ee in encounter_unique:
-            print(ee)
-            deploy_curr, encounter_curr = ee.split('_')
-            df_curr_species_1 = df_curr_species[(df_curr_species['encounter'] == ee)]
-            print(df_curr_species_1.shape)
-            # dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, ee, dataset_path, fs=fs,
-            #                              copies_of_aug=copies_of_aug, clip_length=clip_length,
-            #                              hop_length=hop_length, shift_time_max=shift_time_max,
-            #                              shift_freq_max=shift_freq_max)
-            # df_curr_species_1.to_csv(os.path.join(dataset_path, ee+'.csv'), index=False)
-            # del df_curr_species_1
+    # split over deployments, encounters & clips
 
-        # k-fold split
-        for train_set, test_set in skf.split(encounter_unique, species_list):
-            print('train_set')
-            print(train_set)
-            print('test_set')
-            print(test_set)
-            for ii in test_set:
-                print(species_list[ii]+', ', end='')
 
-    if dd == 'file':
-        # generate data separated by files
-        print('')
+
+
+
+# if dd == 'deployment':
+#     # generate data separated by deployments
+#     for ee in ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']:
+#         df_curr_species_1 = df_curr_species[(df_curr_species['deployment'] == ee)]
+#         dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, ee, dataset_path, fs=fs,
+#                                      copies_of_aug=copies_of_aug, clip_length=clip_length,
+#                                      hop_length=hop_length, shift_time_max=shift_time_max,
+#                                      shift_freq_max=shift_freq_max)
+#         df_curr_species_1.to_csv(os.path.join(dataset_path, ee+'.csv'), index=False)
+#         del df_curr_species_1
+#
+# if dd == 'encounter':
+#     # generate data separated by encounters
+#     # use species & encounter as keys!
+#     species_list = []
+#     encounter_unique = pd.unique(df_curr_species['encounter'])
+#     species_unique = []
+#     for ee in encounter_unique:
+#         species_unique.append(df_curr_species[df_curr_species['encounter']==ee]['species'])
+#     for ii in range(len(species_unique)):
+#         print(encounter_unique[ii])
+#         species_name = pd.unique(species_unique[ii])
+#         species_list.append(species_name[0])
+#     # make an dataframe consisting of encounter_unique & species_list
+#     df_encounter_species = pd.DataFrame({'encounter': encounter_unique, 'species': species_list})
+#     df_encounter_species.to_csv(os.path.join(dataset_path, 'encounter_species'+'.csv'), index=False)
+#
+#     # feature extraction, calculated once. how to index?
+#     print('Feature extraction...')
+#     for ee in encounter_unique:
+#         print(ee)
+#         deploy_curr, encounter_curr = ee.split('_')
+#         df_curr_species_1 = df_curr_species[(df_curr_species['encounter'] == ee)]
+#         print(df_curr_species_1.shape)
+#         # dataset_fea_augment_parallel(df_curr_species_1, df_curr_noise, ee, dataset_path, fs=fs,
+#         #                              copies_of_aug=copies_of_aug, clip_length=clip_length,
+#         #                              hop_length=hop_length, shift_time_max=shift_time_max,
+#         #                              shift_freq_max=shift_freq_max)
+#         # df_curr_species_1.to_csv(os.path.join(dataset_path, ee+'.csv'), index=False)
+#         # del df_curr_species_1
+#
+#     # k-fold split
+#     for train_set, test_set in skf.split(encounter_unique, species_list):
+#         print('train_set')
+#         print(train_set)
+#         print('test_set')
+#         print(test_set)
+#         for ii in test_set:
+#             print(species_list[ii]+', ', end='')
+#
+# if dd == 'file':
+#     # generate data separated by files
+#     print('')
+
+
+
+
+
 
     # pool_fea = mp.Pool(processes=cpu_count)
     # spec_feas_orig_list = []
