@@ -1,5 +1,6 @@
 
-tensorflow-gpu==2.2, cudnn==7.6.5, cudatoolkit==10.1
+# tensorflow-gpu==2.2, cudnn==7.6.5, cudatoolkit==10.1
+conda install tensorflow=2.2.0=gpu_py38hb782248_0
 tensorboard
 pandas
 numpy
