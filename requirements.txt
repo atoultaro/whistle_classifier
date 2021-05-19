@@ -1,19 +1,19 @@
 
-tensorflow-gpu
+tensorflow-gpu==2.2, cudnn==7.6.5, cudatoolkit==10.1
 tensorboard
 pandas
 numpy
-jupyterlab  => conda install -c conda-forge
 scikit-learn
 matplotlib
+
+jupyterlab  => conda install -c conda-forge
 seaborn
 jupyter_contrib_nbextensions
 
 Use pip to install
-librosa
-soundfile
+librosa==0.8.0, soundfile=0.10.3
 opencv-python
-tensorflow-addons=0.10 for tensorflow 2.2
+tensorflow-addons==0.11 for tensorflow 2.2
 sox
 lckr-jupyterlab-variableinspector
 
