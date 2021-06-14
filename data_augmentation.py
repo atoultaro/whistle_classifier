@@ -43,7 +43,7 @@ shift_freq_max = 5
 random.seed(0)
 
 # where the sound clips are
-dataset_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__dataset'
+dataset_path = '/home/ys587/__Data/__whistle/__whistle_30_species/__dataset'
 datasets = ['oswald', 'gillispie', 'dclde2011', 'watkin']
 clip_paths = dict()
 for dd in datasets:

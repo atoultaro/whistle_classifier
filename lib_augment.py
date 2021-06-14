@@ -118,7 +118,8 @@ def load_and_normalize(sound_path, sr=48000, clip_length=96000):
 
 
 def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, dataset_path, fs=48000, copies_of_aug=3,
-                                 clip_length=96000, hop_length=960, shift_time_max=25, shift_freq_max=5):
+                                 clip_length=96000, hop_length=960, shift_time_max=25, shift_freq_max=5,
+                                 added_noise=False, noise_type='cross'):
     """
     Run data augmentation / feature extraction on one dataset
     Args:
@@ -150,14 +151,22 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
         row_list.append(row)
 
     row_noise_list = []
-    if df_curr_noise.shape[0] == 0:
+    if (df_curr_noise is None) | (df_curr_noise.shape[0] == 0):
         for ii in range(df_curr_species.shape[0]):
             # for ii in range(debug_n):
             row_noise_list.append(pd.Series())
-    else:
+    elif noise_type == 'cross':
         for index, row_noise in df_curr_noise.sample(n=df_curr_species.shape[0], replace=True).iterrows():
             # for index, row_noise in df_curr_noise.sample(n=debug_n, replace=True).iterrows():
             row_noise_list.append(row_noise)
+    elif noise_type == 'single':
+        for index, row_species in df_curr_species.iterrows():
+            row_noise = df_curr_noise[df_curr_noise['deployment'] == row_species['deployment']].sample(n=1, replace=True).iloc[0]
+            row_noise_list.append(row_noise)
+
+        # for index, row_noise in df_curr_noise.sample(n=df_curr_species.shape[0], replace=True).iterrows():
+        #     # for index, row_noise in df_curr_noise.sample(n=debug_n, replace=True).iterrows():
+        #     row_noise_list.append(row_noise)
 
     # copies_of_aug: a dictionary from species to class weight   <<== for what?
     # species_counts = df_curr_species['species'].value_counts()
@@ -174,11 +183,10 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
     #     # for index, row in df_curr_species.sample(n=debug_n).iterrows():
     #     copies_of_aug_list.append(weight_dict[row['species']])
 
-
     for spec_feas_orig_each, labels_orig_each, spec_feas_aug_each, labels_aug_each in pool_fea.starmap(
             fea_augment_parallel, zip(row_list, row_noise_list, repeat(dataset_path), repeat(fs),
                                       repeat(copies_of_aug), repeat(clip_length), repeat(hop_length),
-                                      repeat(shift_time_max), repeat(shift_freq_max))
+                                      repeat(shift_time_max), repeat(shift_freq_max), repeat(added_noise))
     ):
         spec_feas_orig_list.append(spec_feas_orig_each)
         labels_orig_list.append(labels_orig_each)
@@ -212,7 +220,7 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
 
 
 def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3, clip_length=96000, hop_length=960,
-                         shift_time_max=25, shift_freq_max=5):
+                         shift_time_max=25, shift_freq_max=5, added_noise=False):
     spec_feas_orig = []
     labels_orig = []
     # filenames_orig = []
@@ -235,8 +243,12 @@ def fea_augment_parallel(row, row_noise, dataset_path, fs=48000, copies_of_aug=3
     while aug_count < copies_of_aug:
         # (1) adding noises from another noise clips0
         # if row_noise.shape[0] != 0:
-        curr_noise_path = os.path.join(dataset_path, '__' + row['dataset'], '__sound_clips', row_noise['filename'])
-        spectro_aug = add_noise_to_signal(curr_noise_path, samples, fs=fs, clip_length=clip_length, hop_length=hop_length)
+        if added_noise:
+            curr_noise_path = os.path.join(dataset_path, '__' + row['dataset'], '__sound_clips', row_noise['filename'])
+            spectro_aug = add_noise_to_signal(curr_noise_path, samples, fs=fs, clip_length=clip_length,
+                                              hop_length=hop_length)
+        else:
+            spectro_aug = librosa.feature.melspectrogram(samples, sr=fs, hop_length=hop_length, power=1)
         # (2) time & freq shifting
         spectro_aug = time_freq_shifting(spectro_aug, shift_time_max, shift_freq_max)
         # (3) warping & masking through SpecAugment

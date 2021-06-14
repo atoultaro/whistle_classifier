@@ -20,6 +20,7 @@ from itertools import repeat
 # import lib_feature
 from lib_augment import *
 
+noise_type = 'single'  # cross, single, none
 
 # priori knowledge
 # species_dict = {'BD': 0, 'MH': 1, 'CD': 2, 'STR': 3, 'SPT': 4, 'SPIN': 5, 'PLT': 6, 'RD': 7, 'RT': 8,
@@ -43,11 +44,11 @@ shift_freq_max = 5
 random.seed(0)
 
 # where the sound clips are
-dataset_path = '/home/ys587/__Data/__whistle/__whislte_30_species/__dataset'
+dataset_path = '/home/ys587/__Data/__whistle/__whistle_30_species/__dataset'
 datasets = ['oswald']
 # data_unit = ['deployment', 'encounter', 'file']
-data_unit = ['encounter']
-num_fold = 8
+# data_unit = ['encounter']
+# num_fold = 8
 
 clip_paths = dict()
 for dd in datasets:
@@ -81,8 +82,8 @@ for dd in datasets:
     dataset_df[dd].to_csv(os.path.join(dataset_path, dd+'.csv'), index=False)
 
 # all four datasets
-df_total = pd.concat(list(dataset_df.values()), axis=0)
-df_total.to_csv(os.path.join(dataset_path, 'oswald_datasets.csv'), index=False)
+# df_total = pd.concat(list(dataset_df.values()), axis=0)
+# df_total.to_csv(os.path.join(dataset_path, 'oswald_datasets.csv'), index=False)
 
 # stats: how many clips for species, for noise, for each dataset & total?
 # Under construction
@@ -101,8 +102,8 @@ df_total.to_csv(os.path.join(dataset_path, 'oswald_datasets.csv'), index=False)
 print('Data augmentation: time/freq shift, warping, & adding noise.')
 # for dd in datasets:
 
-from sklearn.model_selection import StratifiedKFold
-skf = StratifiedKFold(n_splits=num_fold)
+# from sklearn.model_selection import StratifiedKFold
+# skf = StratifiedKFold(n_splits=num_fold)
 
 # for dd in data_unit:
 print('=='+dd)
@@ -116,21 +117,48 @@ df_curr_noise = df_curr[df_curr['species'] == 'NO']
 print('====Noise clips: ' + str(df_curr_noise.shape[0]))
 df_curr_noise.to_csv(os.path.join(dataset_path, 'df_noise_' + dd + '.csv'), index=False)
 
+# df_curr_species.to_csv(os.path.join(dataset_path, 'all_species.csv'), index=False)
+# df_curr_noise.to_csv(os.path.join(dataset_path, 'all_noise.csv'), index=False)
+
 # debug
 # df_curr_species = df_curr_species.sample(5000)
 # df_curr_noise = df_curr_noise.sample(5000)
 
 # feature extraction and indexing
 # how to return the features?
-feas_orig, labels_orig, feas_aug, labels_aug = dataset_fea_augment_parallel(df_curr_species, df_curr_noise, 'all',
-                                                                            dataset_path, fs=fs,
-                             copies_of_aug=copies_of_aug, clip_length=clip_length,
-                             hop_length=hop_length, shift_time_max=shift_time_max,
-                             shift_freq_max=shift_freq_max)
-df_curr_species.to_csv(os.path.join(dataset_path, 'all_species.csv'), index=False)
-df_curr_noise.to_csv(os.path.join(dataset_path, 'all_noise.csv'), index=False)
+if noise_type == 'cross':
+    feas_orig, labels_orig, feas_aug, labels_aug = dataset_fea_augment_parallel(df_curr_species, df_curr_noise, 'all',
+                                                                                dataset_path, fs=fs,
+                                                                                copies_of_aug=copies_of_aug,
+                                                                                clip_length=clip_length,
+                                                                                hop_length=hop_length,
+                                                                                shift_time_max=shift_time_max,
+                                                                                shift_freq_max=shift_freq_max,
+                                                                                added_noise=True,
+                                                                                noise_type='cross')
+elif noise_type == 'single':
+    feas_orig, labels_orig, feas_aug, labels_aug = dataset_fea_augment_parallel(df_curr_species, df_curr_noise, 'all',
+                                                                                dataset_path, fs=fs,
+                                                                                copies_of_aug=copies_of_aug,
+                                                                                clip_length=clip_length,
+                                                                                hop_length=hop_length,
+                                                                                shift_time_max=shift_time_max,
+                                                                                shift_freq_max=shift_freq_max,
+                                                                                added_noise=True,
+                                                                                noise_type='single')
+elif noise_type == 'none':
+    feas_orig, labels_orig, feas_aug, labels_aug = dataset_fea_augment_parallel(df_curr_species, df_curr_noise, 'all',
+                                                                                dataset_path, fs=fs,
+                                                                                copies_of_aug=copies_of_aug,
+                                                                                clip_length=clip_length,
+                                                                                hop_length=hop_length,
+                                                                                shift_time_max=shift_time_max,
+                                                                                shift_freq_max=shift_freq_max,
+                                                                                added_noise=False)
+else:
+    print('Please specify one of the following noise types in the data augmentation: cross, single & none.')
 
-    # split over deployments, encounters & clips
+# split over deployments, encounters & clips
 
 
 
