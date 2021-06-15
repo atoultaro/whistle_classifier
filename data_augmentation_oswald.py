@@ -117,8 +117,8 @@ df_curr_noise = df_curr[df_curr['species'] == 'NO']
 print('====Noise clips: ' + str(df_curr_noise.shape[0]))
 df_curr_noise.to_csv(os.path.join(dataset_path, 'df_noise_' + dd + '.csv'), index=False)
 
-# df_curr_species.to_csv(os.path.join(dataset_path, 'all_species.csv'), index=False)
-# df_curr_noise.to_csv(os.path.join(dataset_path, 'all_noise.csv'), index=False)
+df_curr_species.to_csv(os.path.join(dataset_path, 'all_species.csv'), index=False)
+df_curr_noise.to_csv(os.path.join(dataset_path, 'all_noise.csv'), index=False)
 
 # debug
 # df_curr_species = df_curr_species.sample(5000)
