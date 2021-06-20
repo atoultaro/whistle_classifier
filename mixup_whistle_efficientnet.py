@@ -63,8 +63,8 @@ def mix_up(ds_one, ds_two, alpha=0.2):
 """
 ## Define hyperparameters
 """
-learning_rate = 1.e-4  # bce
-# learning_rate = 1.e-3  # focal loss
+# learning_rate = 1.e-4  # bce
+learning_rate = 1.e-3  # EfficientNet
 conv_dim = 64
 pool_size = 2
 pool_stride = 2
@@ -236,15 +236,31 @@ for ee0 in range(5):
     """
     # model = get_training_model()
     # model.load_weights("initial_weights.h5")
-    model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
-                            pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
+
+    # Model 1: Spatial Pyramid Pooling (SPP)
+    # model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
+    #                         pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
+
+    # Model 2: Sound Event Detection (SED) with attention
+    # model = model_cnn14_attention_multi(dim_time, dim_freq, num_species, model_type='feature_level_attention',
+    #                                     conv_dim=conv_dim, pool_size=pool_size, pool_stride=pool_stride,
+    #                                     hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
+
+    # Model 3: Efficient Net
+    # model = tf.keras.applications.efficientnet.EfficientNetB3(
+    model = tf.keras.applications.efficientnet.EfficientNetB7(
+    # model = tf.keras.applications.efficientnet.EfficientNetB0(
+    include_top=True, weights=None, input_tensor=None,
+    input_shape=(dim_time, dim_freq, 1), pooling=None, classes=num_species,
+    classifier_activation='sigmoid')
+
     # model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
     # model.fit(train_ds_mu, validation_data=val_ds, epochs=num_epoch)
     # _, test_acc = model.evaluate(test_ds)
     # print("Test accuracy: {:.2f}%".format(test_acc * 100))
 
-    # loss = tf.keras.losses.binary_crossentropy
-    loss = BinaryFocalLoss(gamma=2)
+    loss = tf.keras.losses.binary_crossentropy
+    # loss = BinaryFocalLoss(gamma=2)
     # deployment folder
     fit_result_path2 = os.path.join(fit_result_path1, ee)
     if not os.path.exists(fit_result_path2):

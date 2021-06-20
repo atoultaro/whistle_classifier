@@ -14,10 +14,11 @@ jupyter_contrib_nbextensions
 Use pip to install
 librosa==0.8.0, soundfile=0.10.3
 opencv-python
-tensorflow-addons==0.11 for tensorflow 2.2
+tensorflow-addons==0.11 for tensorflow 2.2 (tensorflow=2.2.0=gpu_py38hb782248_0)
+tensorflow 2.4.1 gpu_py38h8a7d6ce_0?
 sox
 lckr-jupyterlab-variableinspector
-
+focal-loss
 
 specAugment
 In spec_augment_tensorflow.py:
