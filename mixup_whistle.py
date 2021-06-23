@@ -99,6 +99,7 @@ species_id = list(species_dict.values())
 
 # __feature_crossnoise, __feature_singlenoise, __feature_nonoise
 feature_path = os.path.join(root_dir, '__whistle_30_species/__dataset/__feature_crossnoise')
+# feature_path = os.path.join(root_dir, '__whistle_30_species/__dataset/__feature_nonoise')
 
 # df_species = pd.read_csv(os.path.join(feature_path, 'all.csv'))
 df_species = pd.read_csv(os.path.join(feature_path, 'all_species.csv'))
@@ -236,15 +237,21 @@ for ee0 in range(5):
     """
     # model = get_training_model()
     # model.load_weights("initial_weights.h5")
+
+    # model_cnn14_attention_multi
+    model = model_cnn14_attention_multi(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
+                            pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
+    # model_cnn14_spp
     model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
                             pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
+
     # model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
     # model.fit(train_ds_mu, validation_data=val_ds, epochs=num_epoch)
     # _, test_acc = model.evaluate(test_ds)
     # print("Test accuracy: {:.2f}%".format(test_acc * 100))
 
-    # loss = tf.keras.losses.binary_crossentropy
-    loss = BinaryFocalLoss(gamma=2)
+    loss = tf.keras.losses.binary_crossentropy
+    # loss = BinaryFocalLoss(gamma=2)
     # deployment folder
     fit_result_path2 = os.path.join(fit_result_path1, ee)
     if not os.path.exists(fit_result_path2):

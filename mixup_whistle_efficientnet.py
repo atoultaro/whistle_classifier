@@ -63,8 +63,8 @@ def mix_up(ds_one, ds_two, alpha=0.2):
 """
 ## Define hyperparameters
 """
-# learning_rate = 1.e-4  # bce
-learning_rate = 1.e-3  # EfficientNet
+learning_rate = 1.e-4  # bce
+# learning_rate = 1.e-3  # EfficientNet
 conv_dim = 64
 pool_size = 2
 pool_stride = 2
