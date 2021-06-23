@@ -162,7 +162,7 @@ def dataset_fea_augment_parallel(df_curr_species, df_curr_noise, dataset_name, d
             row_noise_list.append(row_noise)
     elif noise_type == 'single':
         for index, row_species in df_curr_species.iterrows():
-            row_noise = df_curr_noise[df_curr_noise['deployment'] == row_species['deployment']].sample(n=1, replace=True).iloc[0]
+            row_noise = df_curr_noise[df_curr_noise['deployment'] != row_species['deployment']].sample(n=1, replace=True).iloc[0]
             row_noise_list.append(row_noise)
 
         # for index, row_noise in df_curr_noise.sample(n=df_curr_species.shape[0], replace=True).iterrows():
