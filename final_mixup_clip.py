@@ -25,7 +25,7 @@ import tensorflow as tf
 # from tensorflow.keras import layers
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from tensorflow.keras.models import load_model
-from focal_loss import BinaryFocalLoss
+# from focal_loss import BinaryFocalLoss
 from lib_validation import DataGenerator, find_best_model
 from lib_model import model_cnn14_spp, model_cnn14_attention_multi
 from lib_augment import mix_up
@@ -52,8 +52,8 @@ hidden_units = 512
 fcn_dim = 512
 
 run_num = 0
-# num_epoch = 200
-num_epoch = 1  # debug
+num_epoch = 200
+# num_epoch = 1  # debug
 batch_size = 32  # for cnn14+attention
 copies_of_aug = 10  # cannot be changed
 
@@ -65,8 +65,8 @@ num_fold = 5
 In this example, we will be using the [FashionMNIST](https://research.zalando.com/welcome/mission/research-projects/fashion-mnist/) dataset. But this same recipe can
 be used for other classification datasets as well.
 """
-# root_dir = '/home/ys587/__Data/__whistle'  # where we have __whislte_30_species folder
-root_dir = '/home/ubuntu'  # where we have __whislte_30_species folder
+root_dir = '/home/ys587/__Data/__whistle'  # where we have __whislte_30_species folder
+# root_dir = '/home/ubuntu'  # where we have __whislte_30_species folder
 work_path = os.path.join(root_dir, '__whistle_30_species')
 fit_result_path =  os.path.join(work_path, '__fit_result_species')
 
@@ -86,7 +86,7 @@ df_noise = pd.read_csv(os.path.join(feature_path, 'all_noise.csv'))
 today = datetime.now()
 # create a folder based on date & time
 # fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S'))
-fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S')+'_encounter_run'+str(run_num))
+fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S')+'_clip_run'+str(run_num))
 
 # deploy_list = ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']
 random_list0 = [0, 10, 20, 30, 40]
@@ -119,12 +119,12 @@ for train_set, test_set in skf.split(np.arange(labels_orig.shape[0]), labels_ori
     print(feas_orig.shape)
 
     # fea_test = feas_orig[test_set, :, :]  ## << ==
-    fea_test = feas_orig[list(test_set), :, :]  ## replace ndarray by list
-    label_test = labels_orig[list(test_set)]
-    label_test = np.array([species_dict[ll] for ll in label_test])
+    x_test = feas_orig[list(test_set), :, :]  ## replace ndarray by list
+    y_test = labels_orig[list(test_set)]
+    y_test = np.array([species_dict[ll] for ll in y_test])
     print('')
     print(len(test_set))
-    print(fea_test.shape)
+    print(x_test.shape)
     print('')
 
     del feas_orig, labels_orig
@@ -143,12 +143,12 @@ for train_set, test_set in skf.split(np.arange(labels_orig.shape[0]), labels_ori
         for ii in range(copies_of_aug):
             fea_ind_aug.append(ff * copies_of_aug + ii)
 
-    fea_train = feas_aug[fea_ind_aug, :, :]
-    label_train = labels_aug[fea_ind_aug]
-    label_train = np.array([species_dict[ll] for ll in label_train])
+    x_train = feas_aug[fea_ind_aug, :, :]
+    y_train = labels_aug[fea_ind_aug]
+    y_train = np.array([species_dict[ll] for ll in y_train])
     print('')
     print(len(train_set))
-    print(fea_train.shape)
+    print(x_train.shape)
     print('')
 
     del feas_aug, labels_aug
