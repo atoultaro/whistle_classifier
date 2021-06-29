@@ -110,8 +110,7 @@ today = datetime.now()
 # fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S'))
 fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S')+'_deployment_run'+str(run_num))
 
-# deploy_list = ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']
-deploy_list = ['STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005', 'STAR200']
+deploy_list = ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']
 random_list0 = [0, 10, 20, 30, 40]
 random_list = [rr + run_num for rr in random_list0]
 
