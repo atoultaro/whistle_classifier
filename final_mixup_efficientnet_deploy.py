@@ -23,7 +23,7 @@ import tensorflow as tf
 # from tensorflow.keras import layers
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from tensorflow.keras.models import load_model
-from focal_loss import BinaryFocalLoss
+# from focal_loss import BinaryFocalLoss
 from lib_validation import DataGenerator, find_best_model
 from lib_model import model_cnn14_spp, model_cnn14_attention_multi
 """
@@ -248,8 +248,8 @@ for ee0 in range(5):
 
     # Model 3: Efficient Net
     # model = tf.keras.applications.efficientnet.EfficientNetB3(
-    model = tf.keras.applications.efficientnet.EfficientNetB7(
-    # model = tf.keras.applications.efficientnet.EfficientNetB0(
+    # model = tf.keras.applications.efficientnet.EfficientNetB7(
+    model = tf.keras.applications.efficientnet.EfficientNetB0(
     include_top=True, weights=None, input_tensor=None,
     input_shape=(dim_time, dim_freq, 1), pooling=None, classes=num_species,
     classifier_activation='sigmoid')
@@ -274,7 +274,7 @@ for ee0 in range(5):
 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss=loss, metrics=['accuracy'])
     history = model.fit(train_ds_mu, validation_data=val_ds, class_weight=class_weights, epochs=num_epoch, callbacks=[
-        EarlyStopping(patience=num_patience, monitor='val_accuracy', mode='max', verbose=1),
+        EarlyStopping(patience=num_patience, monitor='val_loss', mode='min', verbose=1),
         TensorBoard(log_dir=fit_result_path2),
         ModelCheckpoint(filepath=os.path.join(fit_result_path2, 'epoch_{epoch:02d}_valloss_{val_loss:.4f}_valacc_{val_accuracy:.4f}.hdf5' ), verbose=1, monitor="val_accuracy", save_best_only=True)])
 

@@ -23,7 +23,7 @@ import tensorflow as tf
 # from tensorflow.keras import layers
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from tensorflow.keras.models import load_model
-from focal_loss import BinaryFocalLoss
+# from focal_loss import BinaryFocalLoss
 from lib_validation import DataGenerator, find_best_model
 from lib_model import model_cnn14_spp, model_cnn14_attention_multi
 """
@@ -63,8 +63,8 @@ def mix_up(ds_one, ds_two, alpha=0.2):
 """
 ## Define hyperparameters
 """
-learning_rate = 1.e-4  # bce
-# learning_rate = 1.e-3  # focal loss
+# learning_rate = 1.e-4  # bce
+learning_rate = 1.e-3  # attention, focal loss
 conv_dim = 64
 pool_size = 2
 pool_stride = 2
@@ -87,8 +87,8 @@ num_patience = 20
 In this example, we will be using the [FashionMNIST](https://research.zalando.com/welcome/mission/research-projects/fashion-mnist/) dataset. But this same recipe can
 be used for other classification datasets as well.
 """
-# root_dir = '/home/ys587/__Data/__whistle'  # where we have __whislte_30_species folder
-root_dir = '/home/ubuntu'  # where we have __whislte_30_species folder
+root_dir = '/home/ys587/__Data/__whistle'  # CORNELL machine: where we have __whislte_30_species folder
+# root_dir = '/home/ubuntu'  # AWS machine: where we have __whislte_30_species folder
 work_path = os.path.join(root_dir, '__whistle_30_species')
 fit_result_path =  os.path.join(work_path, '__fit_result_species')
 
@@ -110,7 +110,8 @@ today = datetime.now()
 # fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S'))
 fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S')+'_deployment_run'+str(run_num))
 
-deploy_list = ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']
+# deploy_list = ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']
+deploy_list = ['STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005', 'STAR200']
 random_list0 = [0, 10, 20, 30, 40]
 random_list = [rr + run_num for rr in random_list0]
 
@@ -265,7 +266,7 @@ for ee0 in range(5):
 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss=loss, metrics=['accuracy'])
     history = model.fit(train_ds_mu, validation_data=val_ds, class_weight=class_weights, epochs=num_epoch, callbacks=[
-        EarlyStopping(patience=num_patience, monitor='val_accuracy', mode='max', verbose=1),
+        EarlyStopping(patience=num_patience, monitor='val_loss', mode='min', verbose=1),
         TensorBoard(log_dir=fit_result_path2),
         ModelCheckpoint(filepath=os.path.join(fit_result_path2, 'epoch_{epoch:02d}_valloss_{val_loss:.4f}_valacc_{val_accuracy:.4f}.hdf5' ), verbose=1, monitor="val_accuracy", save_best_only=True)])
 

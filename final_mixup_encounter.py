@@ -265,7 +265,7 @@ for ee0 in range(5):
 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss=loss, metrics=['accuracy'])
     history = model.fit(train_ds_mu, validation_data=val_ds, class_weight=class_weights, epochs=num_epoch, callbacks=[
-        EarlyStopping(patience=num_patience, monitor='val_accuracy', mode='max', verbose=1),
+        EarlyStopping(patience=num_patience, monitor='val_loss', mode='min', verbose=1),
         TensorBoard(log_dir=fit_result_path2),
         ModelCheckpoint(filepath=os.path.join(fit_result_path2, 'epoch_{epoch:02d}_valloss_{val_loss:.4f}_valacc_{val_accuracy:.4f}.hdf5' ), verbose=1, monitor="val_accuracy", save_best_only=True)])
 
