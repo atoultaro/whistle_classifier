@@ -19,6 +19,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 # import matplotlib.pyplot as plt
+from sklearn.model_selection import StratifiedKFold
 import tensorflow as tf
 # from tensorflow.keras import layers
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
@@ -32,8 +33,9 @@ from lib_augment import mix_up
 """
 ## Define hyperparameters
 """
-learning_rate = 1.e-4  # bce
+# learning_rate = 1.e-4  # SPP
 # learning_rate = 1.e-3  # focal loss
+learning_rate = 3.33e-5  # attention
 conv_dim = 64
 pool_size = 2
 pool_stride = 2
@@ -43,12 +45,13 @@ hidden_units = 512
 fcn_dim = 512
 
 run_num = 0
-num_epoch = 200
-# num_epoch = 1  # debug
+# num_epoch = 200
+num_epoch = 1  # debug
 batch_size = 32  # for cnn14+attention
 copies_of_aug = 10  # cannot be changed
 
 num_patience = 20
+num_fold = 5
 
 """
 ## Prepare the dataset
@@ -56,8 +59,8 @@ num_patience = 20
 In this example, we will be using the [FashionMNIST](https://research.zalando.com/welcome/mission/research-projects/fashion-mnist/) dataset. But this same recipe can
 be used for other classification datasets as well.
 """
-# root_dir = '/home/ys587/__Data/__whistle'  # where we have __whislte_30_species folder
-root_dir = '/home/ubuntu'  # where we have __whislte_30_species folder
+root_dir = '/home/ys587/__Data/__whistle'  # where we have __whislte_30_species folder
+# root_dir = '/home/ubuntu'  # where we have __whislte_30_species folder
 work_path = os.path.join(root_dir, '__whistle_30_species')
 fit_result_path =  os.path.join(work_path, '__fit_result_species')
 
@@ -77,23 +80,53 @@ df_noise = pd.read_csv(os.path.join(feature_path, 'all_noise.csv'))
 today = datetime.now()
 # create a folder based on date & time
 # fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S'))
-fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S')+'_deployment_run'+str(run_num))
+fit_result_path1 = os.path.join(fit_result_path, today.strftime('%Y%m%d_%H%M%S')+'_encounter_run'+str(run_num))
 
-deploy_list = ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']
+# generate data separated by encounters
+# use species & encounter as keys!
+species_label_list = []
+encounter_unique = pd.unique(df_species['encounter'])
+species_unique = []
+for ee in encounter_unique:
+    species_unique.append(df_species[df_species['encounter']==ee]['species'])
+for ii in range(len(species_unique)):
+    print(encounter_unique[ii])
+    species_name = pd.unique(species_unique[ii])
+    species_label_list.append(species_name[0])
+# make an dataframe consisting of encounter_unique & species_label_list
+df_encounter_species = pd.DataFrame({'encounter': encounter_unique, 'species': species_label_list})
+# df_encounter_species.to_csv(os.path.join(dataset_path, 'encounter_species'+'.csv'), index=False)
+
+skf = StratifiedKFold(n_splits=num_fold)
+
+# deploy_list = ['STAR2000', 'STAR2003', 'STAR2006', 'HICEAS2002', 'PICEAS2005']
 random_list0 = [0, 10, 20, 30, 40]
 random_list = [rr + run_num for rr in random_list0]
 
 label_pred_all = []
 label_test_all = []
 
-for ee0 in range(5):
-    # for ee0 in range(1):  # debug
-    ee = deploy_list[ee0]
-    print(ee)
+# for ee0 in range(5):
+#     # for ee0 in range(1):  # debug
+#     # ee = deploy_list[ee0]
+#     print(ee)
+# k-fold split
+fold_id = 0
+for train_set, test_set in skf.split(encounter_unique, species_label_list):
+    print('Fold ' + str(fold_id) + ':')
+    print('train_set')
+    print(train_set)
+    print('test_set')
+    print(test_set)
 
-    # (a) testing, original data
-    df_species_test = df_species[(df_species['deployment'] == ee)]
-    print(df_species_test.shape)
+    # (a) testing
+    fea_ind_orig = []
+    for tt in test_set:
+        encounter_curr = df_encounter_species.iloc[tt]['encounter']
+        # print(encounter_curr)
+        df_species_test = df_species[(df_species['encounter'] == encounter_curr)]
+        # print(list(df_species_test.index))
+        fea_ind_orig += list(df_species_test.index)
 
     # loading
     fea_temp_orig = np.load(os.path.join(feature_path, 'all_orig.npz'))
@@ -103,7 +136,7 @@ for ee0 in range(5):
     print(feas_orig.shape)
 
     # original features & labels
-    fea_ind_orig = np.array(df_species_test.index)
+    # fea_ind_orig = np.array(df_species_test.index)
     x_test = feas_orig[fea_ind_orig, :, :]
     y_test = labels_orig[fea_ind_orig]
     y_test = np.array([species_dict[ll] for ll in y_test])
@@ -112,8 +145,14 @@ for ee0 in range(5):
     del feas_orig, labels_orig
 
     # (b) training
-    df_species_train = df_species[(df_species['deployment'] != ee)]
-    print(df_species_train.shape)
+    fea_ind_orig0 = []
+    fea_ind_aug = []
+    for tt in train_set:
+        encounter_curr = df_encounter_species.iloc[tt]['encounter']
+        # print(encounter_curr)
+        df_species_train = df_species[(df_species['encounter'] == encounter_curr)]
+        # print(list(df_species_test.index))
+        fea_ind_orig0 += list(df_species_train.index)
 
     # loading
     fea_temp_aug = np.load(os.path.join(feature_path, 'all_aug.npz'))
@@ -123,11 +162,10 @@ for ee0 in range(5):
     print(feas_aug.shape)
 
     # original features & labels
-    fea_ind_orig = np.array(df_species_train.index)
+    #  fea_ind_orig = np.array(df_species_train.index)
 
     # augmented features & labels
-    fea_ind_aug = []
-    for ff in list(fea_ind_orig):
+    for ff in list(fea_ind_orig0):
         for ii in range(copies_of_aug):
             fea_ind_aug.append(ff * copies_of_aug + ii)
 
@@ -158,11 +196,11 @@ for ee0 in range(5):
     # y_test = tf.one_hot(y_test, num_species)
 
     # shuffle features & labels
-    x_train, y_train = shuffle(x_train, y_train, random_state=random_list[ee0])
-    x_test, y_test = shuffle(x_test, y_test, random_state=random_list[ee0])
+    x_train, y_train = shuffle(x_train, y_train, random_state=random_list[fold_id])
+    x_test, y_test = shuffle(x_test, y_test, random_state=random_list[fold_id])
 
     x_train, x_validate, y_train, y_validate = train_test_split(x_train, y_train, test_size=0.10,
-                                                                            random_state=random_list[ee0])
+                                                                            random_state=random_list[fold_id])
 
     # train_generator = DataGenerator(x_train, y_train, batch_size=batch_size, num_classes=num_species)
     # del x_train
@@ -211,18 +249,13 @@ for ee0 in range(5):
     model = model_cnn14_attention_multi(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
                             pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
     # model_cnn14_spp
-    model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
-                            pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
-
-    # model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
-    # model.fit(train_ds_mu, validation_data=val_ds, epochs=num_epoch)
-    # _, test_acc = model.evaluate(test_ds)
-    # print("Test accuracy: {:.2f}%".format(test_acc * 100))
+    # model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
+    #                         pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
 
     loss = tf.keras.losses.binary_crossentropy
     # loss = BinaryFocalLoss(gamma=2)
-    # deployment folder
-    fit_result_path2 = os.path.join(fit_result_path1, ee)
+    # fold folder
+    fit_result_path2 = os.path.join(fit_result_path1, 'fold' + str(fold_id))
     if not os.path.exists(fit_result_path2):
         makedirs(fit_result_path2)
     # class weight
@@ -246,11 +279,14 @@ for ee0 in range(5):
     y_pred = model.predict(test_ds)
 
     # save the testing results
-    np.savez(os.path.join(fit_result_path1, ee + '_test_results.npz'), label_test=np.argmax(y_test, axis=1), label_pred=y_pred)
+    # np.savez(os.path.join(fit_result_path1, ee + '_test_results.npz'), label_test=np.argmax(y_test, axis=1), label_pred=y_pred)
+    np.savez(os.path.join(fit_result_path1, 'fold' + str(fold_id) + '_test_results.npz'),
+             label_test=np.argmax(y_test, axis=1), label_pred=y_pred)
     label_pred_all.append(y_pred)
     label_test_all.append(np.argmax(y_test, axis=1))
 
     del train_ds_mu, val_ds
+    fold_id += 1
 
 label_pred_all = np.concatenate(label_pred_all)
 label_test_all = np.concatenate(label_test_all)

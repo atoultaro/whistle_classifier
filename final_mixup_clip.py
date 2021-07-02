@@ -34,8 +34,9 @@ from lib_augment import mix_up
 """
 ## Define hyperparameters
 """
-learning_rate = 1.e-4  # bce
+# learning_rate = 1.e-4  #  SPP
 # learning_rate = 1.e-3  # focal loss
+learning_rate = 3.33e-5  # attention
 conv_dim = 64
 pool_size = 2
 pool_stride = 2
@@ -58,8 +59,8 @@ num_fold = 5
 In this example, we will be using the [FashionMNIST](https://research.zalando.com/welcome/mission/research-projects/fashion-mnist/) dataset. But this same recipe can
 be used for other classification datasets as well.
 """
-root_dir = '/home/ys587/__Data/__whistle'  # where we have __whislte_30_species folder
-# root_dir = '/home/ubuntu'  # where we have __whislte_30_species folder
+# root_dir = '/home/ys587/__Data/__whistle'  # where we have __whislte_30_species folder
+root_dir = '/home/ubuntu'  # where we have __whislte_30_species folder
 work_path = os.path.join(root_dir, '__whistle_30_species')
 fit_result_path =  os.path.join(work_path, '__fit_result_species')
 
@@ -216,11 +217,11 @@ for train_set, test_set in skf.split(np.arange(labels_orig.shape[0]), labels_ori
     # model.load_weights("initial_weights.h5")
 
     # model_cnn14_attention_multi
-    # model = model_cnn14_attention_multi(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
-    #                         pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
-    # model_cnn14_spp
-    model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
+    model = model_cnn14_attention_multi(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
                             pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
+    # # model_cnn14_spp
+    # model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
+    #                         pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
 
     # model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
     # model.fit(train_ds_mu, validation_data=val_ds, epochs=num_epoch)
@@ -229,7 +230,7 @@ for train_set, test_set in skf.split(np.arange(labels_orig.shape[0]), labels_ori
 
     loss = tf.keras.losses.binary_crossentropy
     # loss = BinaryFocalLoss(gamma=2)
-    # deployment folder
+    # fold folder
     fit_result_path2 = os.path.join(fit_result_path1, 'fold' + str(fold_id))
     if not os.path.exists(fit_result_path2):
         makedirs(fit_result_path2)
@@ -260,7 +261,6 @@ for train_set, test_set in skf.split(np.arange(labels_orig.shape[0]), labels_ori
     label_test_all.append(np.argmax(y_test, axis=1))
 
     del train_ds_mu, val_ds
-
     fold_id += 1
 
 label_pred_all = np.concatenate(label_pred_all)
