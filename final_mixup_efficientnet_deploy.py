@@ -26,45 +26,14 @@ from tensorflow.keras.models import load_model
 # from focal_loss import BinaryFocalLoss
 from lib_validation import DataGenerator, find_best_model
 from lib_model import model_cnn14_spp, model_cnn14_attention_multi
-"""
-## Define the mixup technique function
-
-To perform the mixup routine, we create new virtual datasets using the training data from
-the same dataset, and apply a lambda value within the [0, 1] range sampled from a [Beta distribution](https://en.wikipedia.org/wiki/Beta_distribution)
-— such that, for example, `new_x = lambda * x1 + (1 - lambda) * x2` (where
-`x1` and `x2` are images) and the same equation is applied to the labels as well.
-"""
-
-
-def sample_beta_distribution(size, concentration_0=0.2, concentration_1=0.2):
-    gamma_1_sample = tf.random.gamma(shape=[size], alpha=concentration_1)
-    gamma_2_sample = tf.random.gamma(shape=[size], alpha=concentration_0)
-    return gamma_1_sample / (gamma_1_sample + gamma_2_sample)
-
-
-def mix_up(ds_one, ds_two, alpha=0.2):
-    # Unpack two datasets
-    images_one, labels_one = ds_one
-    images_two, labels_two = ds_two
-    batch_size = tf.shape(images_one)[0]
-
-    # Sample lambda and reshape it to do the mixup
-    l = sample_beta_distribution(batch_size, alpha, alpha)
-    x_l = tf.reshape(l, (batch_size, 1, 1, 1))
-    y_l = tf.reshape(l, (batch_size, 1))
-
-    # Perform mixup on both images and labels by combining a pair of images/labels
-    # (one from each dataset) into one image/label
-    images = images_one * x_l + images_two * (1 - x_l)
-    labels = labels_one * y_l + labels_two * (1 - y_l)
-    return (images, labels)
+from lib_augment import mix_up
 
 
 """
 ## Define hyperparameters
 """
-learning_rate = 1.e-4  # bce
-# learning_rate = 1.e-3  # EfficientNet
+# learning_rate = 1.e-4  # all models
+learning_rate = 1.e-3  # EfficientNet B0 & B3
 conv_dim = 64
 pool_size = 2
 pool_stride = 2
@@ -276,7 +245,7 @@ for ee0 in range(5):
     history = model.fit(train_ds_mu, validation_data=val_ds, class_weight=class_weights, epochs=num_epoch, callbacks=[
         EarlyStopping(patience=num_patience, monitor='val_loss', mode='min', verbose=1),
         TensorBoard(log_dir=fit_result_path2),
-        ModelCheckpoint(filepath=os.path.join(fit_result_path2, 'epoch_{epoch:02d}_valloss_{val_loss:.4f}_valacc_{val_accuracy:.4f}.hdf5' ), verbose=1, monitor="val_accuracy", save_best_only=True)])
+        ModelCheckpoint(filepath=os.path.join(fit_result_path2, 'epoch_{epoch:02d}_valloss_{val_loss:.4f}_valacc_{val_accuracy:.4f}.hdf5' ), verbose=1, monitor="val_loss", save_best_only=True)])
 
     # Testing
     _, test_acc = model.evaluate(test_ds)

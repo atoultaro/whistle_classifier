@@ -29,14 +29,7 @@ from tensorflow.keras.models import load_model
 from lib_validation import DataGenerator, find_best_model
 from lib_model import model_cnn14_spp, model_cnn14_attention_multi
 from lib_augment import mix_up
-"""
-## Define the mixup technique function
 
-To perform the mixup routine, we create new virtual datasets using the training data from
-the same dataset, and apply a lambda value within the [0, 1] range sampled from a [Beta distribution](https://en.wikipedia.org/wiki/Beta_distribution)
-— such that, for example, `new_x = lambda * x1 + (1 - lambda) * x2` (where
-`x1` and `x2` are images) and the same equation is applied to the labels as well.
-"""
 
 """
 ## Define hyperparameters
@@ -251,7 +244,7 @@ for train_set, test_set in skf.split(np.arange(labels_orig.shape[0]), labels_ori
     history = model.fit(train_ds_mu, validation_data=val_ds, class_weight=class_weights, epochs=num_epoch, callbacks=[
         EarlyStopping(patience=num_patience, monitor='val_loss', mode='min', verbose=1),
         TensorBoard(log_dir=fit_result_path2),
-        ModelCheckpoint(filepath=os.path.join(fit_result_path2, 'epoch_{epoch:02d}_valloss_{val_loss:.4f}_valacc_{val_accuracy:.4f}.hdf5' ), verbose=1, monitor="val_accuracy", save_best_only=True)])
+        ModelCheckpoint(filepath=os.path.join(fit_result_path2, 'epoch_{epoch:02d}_valloss_{val_loss:.4f}_valacc_{val_accuracy:.4f}.hdf5' ), verbose=1, monitor="val_loss", save_best_only=True)])
 
     # Testing
     _, test_acc = model.evaluate(test_ds)

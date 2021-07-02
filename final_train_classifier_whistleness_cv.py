@@ -51,14 +51,12 @@ conf_gen['context_winsize'] = 2.0  # sec
 conf_gen['context_hopsize'] = 0.2  # sec
 conf_gen['contour_timethre'] = 25  # 25 for 0.5 s
 
-conf_gen['fft_size'] = 4096
+# conf_gen['fft_size'] = 4096
 conf_gen['hop_length'] = int(conf_gen['time_reso']*conf_gen['sample_rate'])
 
 conf_gen['img_t'] = int(floor((conf_gen['context_winsize'] / conf_gen['time_reso'])))
-# conf_gen['img_f'] = conf_gen['freq_ind_high'] - conf_gen['freq_ind_low']
 conf_gen['f_low'] = 0
 conf_gen['img_f'] = 128 - conf_gen['f_low']
-# conf_gen['input_shape'] = (conf_gen['img_f'], conf_gen['img_t'], 1)
 conf_gen['input_shape'] = (conf_gen['img_t'], conf_gen['img_f'], 1)
 
 conf_gen['l2_regu'] = 0.00
