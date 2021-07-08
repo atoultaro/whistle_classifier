@@ -218,7 +218,12 @@ for ee0 in range(5):
     # Model 3: Efficient Net
     # model = tf.keras.applications.efficientnet.EfficientNetB3(
     # model = tf.keras.applications.efficientnet.EfficientNetB7(
-    model = tf.keras.applications.efficientnet.EfficientNetB0(
+    # model = tf.keras.applications.efficientnet.EfficientNetB0(
+    # include_top=True, weights=None, input_tensor=None,
+    # input_shape=(dim_time, dim_freq, 1), pooling=None, classes=num_species,
+    # classifier_activation='sigmoid')
+
+    model = tf.keras.applications.resnet50.ResNet50(
     include_top=True, weights=None, input_tensor=None,
     input_shape=(dim_time, dim_freq, 1), pooling=None, classes=num_species,
     classifier_activation='sigmoid')

@@ -235,7 +235,12 @@ for train_set, test_set in skf.split(np.arange(labels_orig.shape[0]), labels_ori
     # # model_cnn14_spp
     # model = model_cnn14_spp(dim_time, dim_freq, num_species, conv_dim=conv_dim, pool_size=pool_size,
     #                         pool_stride=pool_stride, hidden_units=hidden_units, l2_regu=l2_regu, drop_rate=drop_rate)
-    model = tf.keras.applications.efficientnet.EfficientNetB3(
+    # model = tf.keras.applications.efficientnet.EfficientNetB3(
+    # include_top=True, weights=None, input_tensor=None,
+    # input_shape=(dim_time, dim_freq, 1), pooling=None, classes=num_species,
+    # classifier_activation='sigmoid')
+
+    model = tf.keras.applications.resnet50.ResNet50(
     include_top=True, weights=None, input_tensor=None,
     input_shape=(dim_time, dim_freq, 1), pooling=None, classes=num_species,
     classifier_activation='sigmoid')
